@@ -1,0 +1,49 @@
+Статические переменные:
+
+insideUnitCircle	
+- Возвращает случайную точку внутри окружности радиусом 1 (Read Only).
+
+insideUnitSphere	
+- Возвращает случайную точку внутри сферы с радиусом 1 (Read Only).
+
+onUnitSphere	
+- Возвращает случайную точку на поверхности сферы радиусом 1 (Read Only).
+
+rotation	
+- Возвращает случайное вращение (Read Only).
+
+rotationUniform	
+- Возвращает случайное вращение с равномерным распределением (Read Only).
+
+seed	
+- Устанавливает начальное значение для генератора случайных чисел.
+
+value	
+- Возвращает случайное число между 0.0 [вкл] и 1.0 [вкл] (Read Only).
+
+
+
+Статические функции
+
+int Range(int min, int max);
+- Возвращает случайное целое число между min [включительно] и max [искключительно].
+
+float Range(float min, float max);
+- Возвращает случайное число с плавающей точкой между min [включительно] и max [включительно].
+
+Color ColorHSV();
+- Generates a random color
+
+Color ColorHSV(float hueMin, float hueMax, float saturationMin, float saturationMax, float valueMin, float valueMax);
+- Generates a random color from HSV ranges.
+
+Параметры:
+hueMin 	Minimum hue [0..1].
+hueMax 	Maximum hue [0..1].
+saturationMin 	Minimum saturation [0..1].
+saturationMax 	Maximum saturation[0..1].
+valueMin 	Minimum value [0..1].
+valueMax 	Maximum value [0..1].
+
+
+

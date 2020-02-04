@@ -1,0 +1,127 @@
+<size=30><b>Переменные</b></size>
+----------------------------------------
+<t>int</t> a; <cmt>//declare 'a' as integer variable</cmt>
+<t>bool</t> b; <cmt>//declare 'b' as boolean variable</cmt>
+<t>var</t> x = 5; <cmt>//declare 'x' as integer variable and initialize it with value of 5</cmt>
+<t>var</t> y = 5f; <cmt>//declare 'y' as float variable and initialize it with value of 5f</cmt>
+<c>EnemyInfo</c> ei1; <cmt>//declare 'ei1' as variable of 'EnemyInfo' structure</cmt>
+<t>bool</t> capacity1 = <c>BOT</c>.<m>CheckContainerCapacity()</m>; <cmt>//declare 'capacity1' as boolean variable and initialize it with value of BOT.CheckContainerCapacity()</cmt>
+<t>var</t> capacity2 = <c>BOT</c>.<m>CheckContainerCapacity()</m>; <cmt>//declare 'capacity2' as boolean variable and initialize it with value of BOT.CheckContainerCapacity()</cmt>
+<t>var</t> ei2 = <c>BOT</c>.<m>GetClosestEnemyInfo()</m>; <cmt>//declare 'ei2' as variable of 'EnemyInfo' structure and initialize it with value of BOT.GetClosestEnemyInfo()</cmt>
+
+<size=30><b>Массивы</b></size>
+----------------------------------------
+<t>int</t>[] a; <cmt>//declare array of int</cmt>
+a = <instr>new</instr> <t>int</t>[3]; <cmt>//initialize a as array of int with 3 default elements (int default = 0)</cmt>
+
+<t>bool</t> b_arr = <instr>new</instr> <t>bool</t>[5]; <cmt>//declare array of bool, and initialize it with 5 default elements (bool default = false)</cmt>
+b_arr = <instr>new</instr> <t>bool</t>[5]{true, true, false, true, false}; <cmt>//re-initialize b_arr with 5 given values</cmt>
+
+<t>float</t> f_arr = <instr>new</instr> <t>float</t>[4]{ 17f, 135f, 75f, 41f }; <cmt>//declare array of float, and initialize it with 4 given elements</cmt>
+f_arr = <instr>new</instr> <t>float</t>[6]{ 11f, 0f, 6f, 14f, 512f, 2f }; <cmt>//reinitialize f_arr with 6 given elements (yes, that's perfectly possible)</cmt>
+f_arr = <instr>new</instr> <t>float</t>[2]; <cmt>//reinitialize f_arr with 2 default elements (float default = 0f)</cmt>
+
+Перебор массива
+<instr>for</instr> (<t>int</t> i = 0; i < b_arr.<m>Length</m>; i++) {
+  f_arr[i] = i;
+}
+
+<size=30><b>Массивы многомерные</b></size>
+----------------------------------------
+<t>int</t> a[,]; <cmt>//declare 2-dimentional array of int (table of int)</cmt>
+<t>int</t> b[,,]; <cmt>//declare 3-dimentional array of int (cube of int)</cmt>
+<t>int</t> c[,,,]; <cmt>//declare 4-dimentional array of int</cmt>
+
+a = <instr>new</instr> <t>int</t>[3,5]; <cmt>//initialize 2-dimentional array of int with table 3x5 of default elements (int default = 0)</cmt>
+<t>bool</t>[,,] b_cube = <instr>new</instr> <t>int</t>[5,7,2]; <cmt>//declare and initialize 3-dimentional array of bool with 5x7x2 cube of default elements (bool default = false)</cmt>
+
+<t>int</t>[,] d = <instr>new</instr> <t>int</t>[3,2]{ {3,7,12}, {15,42,6} }; <cmt>//declare and initialize 2-dimentional array of int with table 3x2 with given elements</cmt>
+<t>int</t>[,] e = <instr>new</instr> <t>int</t>[2,3]{ {45,35}, {1,14}, {92, 61} }; <cmt>//declare and initialize 2-dimentional array of int with table 2x3 with given elements</cmt>
+
+c = <instr>new</instr> <t>int</t>[2,3,2]{ { {17,14},{32,61},{4,29} }, { {65,1}, {92,5}, {8,49} } }; <cmt>//initialize 3-dimentional array of int with cube 2x3x2 with given elements</cmt>
+
+<cmt>//TODO - how to set/get values</cmt>
+<cmt>//TODO - iteration</cmt>
+
+<size=30><b>Массивы зубчатые (массив массивов)</b></size>
+----------------------------------------
+<t>int</t>[][] a; <cmt>//declare 2-dimentional jagged array of int</cmt>
+a = <instr>new</instr> <t>int</t>[5][]; <cmt>//initialize first dimention (rows number) of jagged array to 5 elements</cmt>
+a[0] = <instr>new</instr> <t>int</t>[3]; <cmt>//initialize first row to 3 columns</cmt>
+a[1] = <instr>new</instr> <t>int</t>[5]; <cmt>//initialize second row to 5 columns</cmt>
+a[2] = <instr>new</instr> <t>int</t>[2]; <cmt>//initialize thirs row to 2 columns</cmt>
+a[3] = <instr>new</instr> <t>int</t>[8]; <cmt>//initialize forth row to 8 columns</cmt>
+a[4] = <instr>new</instr> <t>int</t>[10]; <cmt>//initialize fifth row to 10 columns</cmt>
+
+a[0][2] = 15; <cmt>//set first row, third column value to 15</cmt>
+a[3][7] = a[2][0]; <cmt>//set forth row, third column value to third row first column</cmt>
+
+<cmt>//TODO - iteration</cmt>
+
+<size=30><b>Методы и функции</b></size>
+----------------------------------------
+<c>BOT</c>.<m>Move</m>(); <cmt>//call 'Move' method of class 'BOT' without arguments</cmt>
+<c>BOT</c>.<m>Move</m>(2); <cmt>//call 'Move' method of class 'BOT' with single argument</cmt>
+<c>BOT</c>.<m>RotateTo</m>(47, 13); <cmt>//call 'RotateTo' method of class 'BOT' with two argument</cmt>
+<c>BOT</c>.<m>RotateTo</m>(coord_x, 13+b); <cmt>//call 'RotateTo' method of class 'BOT' with two argument, where the first is a variable, and the second is a arithmetical expression</cmt>
+
+<t>int</t> a;
+a = <c>BOT</c>.<m>CheckContainerCapacity</m>(); <cmt>//call 'CheckContainerCapacity' function of class 'BOT' and put it's value into 'a' variable</cmt>
+
+<t>int</t> b = <c>BOT</c>.<m>CheckContainerCapacity</m>(); <cmt>//declare 'b' variable, call 'CheckContainerCapacity' function, and put it's value into 'b' variable</cmt>
+
+<c>EnemyInfo</c> ei1 = <c>BOT</c>.<m>GetClosestEnemyInfo</m>(); <cmt>//declare 'ei1' as variable of 'EnemyInfo' structure, call 'GetClosestEnemyInfo' function, and put it's value into 'ei1' variable</cmt>
+
+<t>var</t> xxx = <c>BOT</c>.<m>CheckContainerCapacity</m>(); <cmt>//declare 'xxx' as int variable, because 'CheckContainerCapacity' function is returning an int. Then, call the function and put it's value into 'xxx' variable</cmt>
+<t>var</t> yyy = <c>BOT</c>.<m>GetClosestEnemyInfo</m>(); <cmt>//declare 'yyy' as variable of 'EnemyInfo' structure, because 'GetClosestEnemyInfo' function is returning an 'EnemyInfo' structure. Then, call the function and put it's value into 'yyy' variable</cmt>
+
+Оффициальная нотация методов и функций в подсказке кода и в интернете вообще
+<t>void</t> <c>BOT</c>.<m>Move</m>(); <cmt>//означает, что в классе BOT есть функция Move(), которая не принимает ни одного аргумента, и возвращает <i>void</i> (<i>ничто</i>), т.е. является методом</cmt>
+<t>int</t> <c>BOT</c>.<m>CheckContainerCapacity</m>(); <cmt>//означает, что в классе BOT есть функция CheckContainerCapacity(), которая не принимает ни одного аргумента, и возвращает int</cmt>
+<c>EnemyInfo</c> <c>BOT</c>.<m>GetClosestEnemyInfo</m>(); <cmt>//означает, что в классе BOT есть функция GetClosestEnemyInfo(), которая не принимает ни одного аргумента, и возвращает структуру или класс 'EnemyInfo'</cmt>
+<t>void</t> <c>BOT</c>.<m>PutEnergy</m>(<t>int</t> q); <cmt>//означает, что в классе BOT есть функция PutEnergy(), которая принимает один аргумент типа int, с названием <i>q</i>, и возвращает void (<i>ничто</i>), т.е. является методом. Часто, из названия аргумента можно понять его назначение, но в данном случае не очень. q - это просто первая буква quantity.</cmt>
+<t>void</t> <c>BOT</c>.<m>RotateTo</m>(<t>float</t> x, <t>float</t> y, <t>float</t> step = 0f) <cmt>//означает, что в классе BOT есть функция RotateTo(), которая принимает три аргумента типа float. Третий аргумент является опциональным, т.к. ему присвоено значение по умолчанию.</cmt>
+
+<size=30><b>Условия</b></size>
+----------------------------------------
+Logical operators:
+&& - and
+|| - or
+! - not
+
+Conditional operators:
+<instr>if</instr> (a == 3) { <cmt>//code to run if conditions true</cmt>  }
+<instr>else</instr>        { <cmt>//code to run if conditions false</cmt> }
+
+<instr>if</instr> (a < 5 && b > 7) { <cmt>//code to run if conditions true</cmt>  }
+
+<instr>if</instr> (a || !b) { <cmt>//code to run if conditions true</cmt>  }
+
+<t>int</t> x = <c>BOT</c>.<m>CheckContainerCapacity</m>();
+<instr>switch</instr> (x) {
+  <instr>case</instr> 0: <c>Console</c>.<m>Log</m>(<str>"Container have nothing"</str>); <instr>break</instr>;
+  <instr>case</instr> 1: <c>Console</c>.<m>Log</m>(<str>"Container have capacity of 1"</str>); <instr>break</instr>;
+  <instr>case default</instr>: <c>Console</c>.<m>Log</m>(<str>"Container have capacity of more then one"</str>); <instr>break</instr>;
+}
+
+<size=30><b>Циклы</b></size>
+----------------------------------------
+<t>int</t> a = 0;
+<instr>while</instr> (a < 100) {
+  <cmt>//code to execute 100 times</cmt>
+  a++;
+}
+
+<instr>while</instr> (true) {
+  <instr>if</instr> (n < 0) { <instr>break</instr>; } <cmt>//Exit loop</cmt>
+}
+
+<instr>for</instr> (int a = 0; a < 100; a++) {
+  <cmt>//code to execute 100 times</cmt>
+}
+
+<t>string</t>[] str_arr = <instr>new</instr> <t>string</t>[]{<str>"aaa"</str>, <str>"bbb"</str>, <str>"ccc"</str>};
+<instr>foreach</instr> (<t>string</t> str <instr>in</instr> str_arr) {
+  <cmt>//code to execute for each element in str_arr array</cmt>
+}
+

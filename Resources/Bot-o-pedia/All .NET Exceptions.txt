@@ -1,0 +1,5 @@
+https://powershellexplained.com/2017-04-07-all-dotnet-exception-list/
+https://airbrake.io/blog/dotnet-exception-handling/exception-class-hierarchy
+
+
+
