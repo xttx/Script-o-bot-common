@@ -190,11 +190,12 @@ void Start ()
 
 		//Level 1-1
 		Step_Add_SetScript ("");
-		Step_Add_Dialog ("Привет, меня зовут <b>ХУЙНЯ</b>. И я, сцуко, робот.");
+		//Step_Add_Dialog ("Привет, меня зовут <b>ХУЙНЯ</b>. И я, сцуко, робот.");
+		Step_Add_Dialog ("Привет, меня зовут <b>ГИЗМО</b>. И я - робот.");
 		Step_Add_Dialog ("Тяжело быть роботом - я ничего не умею делать, пока мне не прикажут...");
 		Step_Add_Dialog ("Разговаривать со мной надо определённым образом, но всё по порядку.");
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
-		Step_Add_Tutorial_Arrow_Show (-560f, 1f); //Top - Padding - LineHeight - LineSpace - HalfLineHeight
+		Step_Add_Tutorial_Arrow_Show (-560f, 1f);
 		Step_Add_Dialog ("У меня есть функция Start, она вызывается сразу при моём запуске.");
 		Step_Add_Tutorial_RedPanel_Show ( 1f, 3f, 99f, 6f );
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n//All code here will be executed\n//  when you press Play\n\n}");
@@ -205,14 +206,16 @@ void Start ()
 		Step_Add_Dialog_Important ("<c>BOT</c>");
 		Step_Add_Dialog ("В коде, ко мне надо обращатся через переменную BOT. Это объектная переменная, т.е. она содержит ссылку на класс... Бла-бла-бла... забудь.\nПока достаточно знать что в переменной BOT сижу я сам.");
 		Step_Add_Dialog ("ВОТ, это в смысле <b>БОТ</b>, то есть я. А не <b>ВОТ</b> в смысле \"вот\". То есть \"БОТ\" английскими буквами, а не \"Вот, нате вам креньдельки под язык, да куличики в ноздри\".\nПонятно? Нет? Ну и пофиг вообще...");
-		Step_Add_Dialog ("У меня много разных методов и свойств: я умею двигаться, подбирать лут, драться, летать, хуярить кувалдой по стенам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углублятся.");
+		//Step_Add_Dialog ("У меня много разных методов и свойств: я умею двигаться, подбирать лут, драться, летать, хуярить кувалдой по стенам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углублятся.");
+		Step_Add_Dialog ("У меня много разных методов и свойств: я умею двигаться, подбирать лут, драться, летать, фигачить кувалдой по стенам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углублятся.");
 		Step_Add_Dialog ("Методы - это команды мне, заставляющие меня что-то сделать.");
 		Step_Add_Dialog ("А свойства... Да хрен с ними со свойствами. Потом, как ни будь...");
 		Step_Add_Dialog ("Попробуем что ни будь не сложное.\nУ меня есть метод Say, он заставляет меня говорить.\n");
 		Step_Add_Dialog_Important_Continue (".<m>Say</m>");
 		Step_Add_Dialog_Continue ("Что бы вызвать метод, нужно написать мою переменную, затем точку и наконец имя метода.");
 		Step_Add_Dialog ("У этого метода есть один обязательный параметр - собственно текст, который я должен сказать.\n");
-		Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Хуйня!\"</str>)"); //color: 195 145 91; Hex: C3915B
+		//Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Хуйня!\"</str>)"); //color: 195 145 91; Hex: C3915B
+		Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Гизмо!\"</str>)"); //color: 195 145 91; Hex: C3915B
 		Step_Add_Dialog_Continue ("Параметры указываются в скобках после имени метода.\nНу, и потому что это текст - он должен быть в кавычках, иначе я не пойму - что я должен интерпретировать как часть кода, а что как текст.");
 		Step_Add_Dialog_Important_Continue (";");
 		Step_Add_Dialog ("Наконец, после каждой команды, должна стоять точка с запятой. Получается как-то так.");
@@ -246,7 +249,8 @@ void Start ()
 		Step_Add_ScriptControls_Hide ();
 		Step_Add_Pause ();
 		Step_Add_Dialog_Show ();
-		Step_Add_Dialog ("Сука, не туда-а-а-а....");
+		//Step_Add_Dialog ("Сука, не туда-а-а-а....");
+		Step_Add_Dialog ("Не туда-а-а-а....");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Resume ();
 		Step_Add_Check_Requirement ("BOT.Position.y < -5");
@@ -267,7 +271,8 @@ void Start ()
 		Step_Add_Dialog ("О да!\nМы почти на месте!");
 		Step_Add_Resume ();
 		Step_Add_Check_Requirement ("BOT.Position.z > 1.5");
-		Step_Add_Dialog ("Бля...\n");
+		//Step_Add_Dialog ("Бля...\n");
+		Step_Add_Dialog ("Чёрт...\n");
 		Step_Add_Check_Requirement ("BOT.Position.z > 4");
 		Step_Add_ScriptControls_Show ();		
 		Step_Add_Dialog_Continue ("Всё, вырубай.");
