@@ -1222,6 +1222,155 @@ void Start ()
 		// }
 	}
 
+	public static void Convert_Generated_Script() {
+		System.Globalization.NumberFormatInfo nfi = new System.Globalization.NumberFormatInfo(); nfi.NumberDecimalSeparator = ".";
+		var file_text = System.IO.File.ReadAllText(Application.dataPath + "/../Generated_Script.txt");
+		var text_arr = file_text.Split(new string[]{"\r\n"}, System.StringSplitOptions.RemoveEmptyEntries);
+
+		string str = "";
+		foreach (string line in text_arr) {
+			if (line.Length < 34) continue;
+
+			string cmd = line.Substring(0, 34);
+			string param = (line.Length == 34) ? "" : line.Substring(34);
+			if (cmd.StartsWith("ПОКАЗАТЬ В ПАНЕЛИ:")) {
+				param = param.TrimEnd();
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				int ind = param.LastIndexOf("(");
+				if (ind <= 0) {Debug.Log("Could not parse: " + cmd + param); continue; }
+				string str_param = param.Substring(0, ind);
+				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
+				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
+				if (int_param_arr.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
+
+				str += "		Step_Add_Dialog (\"" + str_param + "\"";
+				if (int_param_arr[0] == -1 && int_param_arr[1] == 0) str += ");\n";
+				else str += ", " + int_param_arr[0].ToString() + ", " + int_param_arr[1].ToString() + ");\n";
+			}
+			else if (cmd.StartsWith("ПРОДОЛЖИТЬ В ПАНЕЛИ:")) {
+				param = param.TrimEnd();
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				int ind = param.LastIndexOf("(");
+				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				string str_param = param.Substring(0, ind);
+				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
+				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
+				if (int_param_arr.Length != 1) { Debug.Log("Could not parse: " + cmd + param); continue; }
+
+				str += "		Step_Add_Dialog_Continue (\"" + str_param + "\"";
+				if (int_param_arr[0] == -1) str += ");\n";
+				else str += ", " + int_param_arr[0].ToString() + ");\n";
+			}
+			else if (cmd.StartsWith("ПОКАЗАТЬ В НИЖНЕЙ ПАНЕЛИ:")) {
+				param = param.TrimEnd();
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				int ind = param.LastIndexOf("(");
+				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				string str_param = param.Substring(0, ind);
+				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
+				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
+				if (int_param_arr.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
+
+				str += "		Step_Add_Dialog_Important (\"" + str_param + "\"";
+				if (int_param_arr[0] == -1 && int_param_arr[1] == 0) str += ");\n";
+				else str += ", " + int_param_arr[0].ToString() + ", " + int_param_arr[1].ToString() + ");\n";
+			}
+			else if (cmd.StartsWith("ПРОДОЛЖИТЬ В НИЖНЕЙ ПАНЕЛИ:")) {
+				param = param.TrimEnd();
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				int ind = param.LastIndexOf("(");
+				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				string str_param = param.Substring(0, ind);
+				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
+				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
+				if (int_param_arr.Length != 1) { Debug.Log("Could not parse: " + cmd + param); continue; }
+
+				str += "		Step_Add_Dialog_Important_Continue (\"" + str_param + "\"";
+				if (int_param_arr[0] == -1) str += ");\n";
+				else str += ", " + int_param_arr[0].ToString() + ");\n";
+			}
+			else if (cmd.StartsWith("ПОКАЗАТЬ ПАНЕЛЬ ДИАЛОГА:")) {
+				str += "		Step_Add_Dialog_Show ();\n";
+			}
+			else if (cmd.StartsWith("СКРЫТЬ ПАНЕЛЬ ДИАЛОГА")) {
+				str += "		Step_Add_Dialog_Hide ();\n";
+			}
+			else if (cmd.StartsWith("СКРЫТЬ НИЖНЮЮ ПАНЕЛЬ ДИАЛОГА")) {
+				str += "		Step_Add_Dialog_Important_Hide ();\n";
+			}
+			else if (cmd.StartsWith("ПОКАЗАТЬ КРАСНУЮ СТРЕЛКУ:")) {
+				param = param.Trim();
+				if (!param.StartsWith("(")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				string float_param = param.Substring(1, param.Length-2);
+				var float_param_arr = float_param.Split(new char[]{','}).Select(x=> float.Parse(x.Trim(), System.Globalization.NumberStyles.Any, nfi)).ToArray();
+				if (float_param_arr.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				str += "		Step_Add_Tutorial_Arrow_Show (" + float_param_arr[0].ToString(nfi) + "F, " + float_param_arr[1].ToString(nfi) + "F);\n";
+			}
+			else if (cmd.StartsWith("СКРЫТЬ КРАСНУЮ СТРЕЛКУ:")) {
+				str += "		Step_Add_Tutorial_Arrow_Hide ();\n";
+			}
+			else if (cmd.StartsWith("ПОКАЗАТЬ КРАСНУЮ ОБВОДКУ:")) {
+				param = param.Trim();
+				if (!param.StartsWith("(")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				string float_param = param.Substring(1, param.Length-2);
+				var float_param_arr = float_param.Split(new char[]{','}).Select(x=> float.Parse(x.Trim(), System.Globalization.NumberStyles.Any, nfi)).ToArray();
+				if (float_param_arr.Length != 4) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				str += "		Step_Add_Tutorial_RedPanel_Show (" + float_param_arr[0].ToString(nfi) + "F, " + float_param_arr[1].ToString(nfi) + "F, " + float_param_arr[2].ToString(nfi) + "F, " + float_param_arr[3].ToString(nfi) + "F);\n";
+			}
+			else if (cmd.StartsWith("СКРЫТЬ КРАСНУЮ ОБВОДКУ:")) {
+				str += "		Step_Add_Tutorial_RedPanel_Hide ();\n";
+			}
+			else if (cmd.StartsWith("ПОКАЗАТЬ КНОПКИ УПРАВЛЕНИЯ")) {
+				str += "		Step_Add_ScriptControls_Show ();\n";
+			}
+			else if (cmd.StartsWith("СКРЫТЬ КНОПКИ УПРАВЛЕНИЯ")) {
+				str += "		Step_Add_ScriptControls_Hide ();\n";
+			}
+			else if (cmd.StartsWith("ВСТАВИТЬ СКРИПТ В РЕДАКТОР:")) {
+				str += "		Step_Add_SetScript (\"" + param + "\");\n";
+			}
+			else if (cmd.StartsWith("ЗАБЛОКИРОВАТЬ ИНСТРУКЦИИ:")) {
+				str += "		Step_Add_Set_Blocked_Instructions (\"" + param + "\");\n";
+			}
+			else if (cmd.StartsWith("ПРОПУСТИТЬ АНИМАЦИЮ БОТА")) {
+				str += "		Step_Add_Skip_Bot_Rebase_Anim ();\n";
+			}
+			else if (cmd.StartsWith("АКТИВИРОВАТЬ ОБЪЕКТ:")) {
+				str += "		Step_Add_Activate_Level_Object (\"" + param.Trim() + "\");\n";
+			}
+			else if (cmd.StartsWith("ПРОИГРАТЬ ЗВУК:")) {
+				var int_param = param.Split(new char[]{','}).Select(x=>int.Parse(x)).ToArray();
+				if (int_param.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
+				str += "		Step_Add_Play_Sound (" + int_param[0].ToString() + ", " + int_param[1].ToString() + ");\n";
+			}
+			else if (cmd.StartsWith("ВЕРНУТЬ ГРОМКОСТЬ")) {
+				str += "		Step_Add_Restore_Music_Volume ();\n";
+			}
+			else if (cmd.StartsWith("ЖДАТЬ:")) {
+				float f = float.Parse(param.Trim(), System.Globalization.NumberStyles.Any, nfi);
+				str += "		Step_Add_Wait (" + f.ToString(nfi) + "F);\n";
+			}
+			else if (cmd.StartsWith("ПРИОСТАНОВИТЬ ВЫПОЛНЕНИЕ СКРИПТА")) {
+				str += "		Step_Add_Pause ();\n";
+			}
+			else if (cmd.StartsWith("ПРОДОЛЖИТЬ ВЫПОЛНЕНИЕ СКРИПТА")) {
+				str += "		Step_Add_Resume ();\n";
+			}
+			else if (cmd.StartsWith("ЖДАТЬ СОСТОЯНИЯ:")) {
+				str += "		Step_Add_Check_Requirement (\"" + param.Trim() + "\");\n";
+			}
+			else if (cmd.StartsWith("ЗАКОНЧИТЬ УРОВЕНЬ:")) {
+				param = param.TrimEnd();
+				var str_param_arr = param.Split(new string[]{"---"}, System.StringSplitOptions.None);
+				if (str_param_arr.Length != 2) continue;
+				str += "		Step_Add_LevelComplete (\"" + str_param_arr[0] + "\", \"" + str_param_arr[1] + "\");\n\n";
+			}
+		}
+
+		System.IO.File.WriteAllText(Application.dataPath + "/../Generated_Script_CNV.txt", str);
+	}
 	public static void Import_All_Script() {
 		steps.Clear();
 		Engine.Level_names.Clear();

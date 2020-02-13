@@ -1042,6 +1042,8 @@ public class Engine : MonoBehaviour {
 
 		if (check_key(Key.Debug_Generate_Script)) { Scenario.Export_All_Script(); }
 		if (Input.GetKeyDown(KeyCode.H) && Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt)) { Scenario.Import_All_Script(); }
+		if (Input.GetKeyDown(KeyCode.J) && Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt)) { Scenario.Convert_Generated_Script(); }
+		//if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt)) { BOT.bot_animator.SetTrigger("Blink"); }
 
 		//Pause immediate
 		if (Control_UI.isPlaying() && check_key(Key.Script_Control_Pause_Immediate)) {
