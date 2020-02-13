@@ -190,41 +190,38 @@ void Start ()
 
 		//Level 1-1
 		Step_Add_SetScript ("");
-		//Step_Add_Dialog ("Привет, меня зовут <b>ХУЙНЯ</b>. И я, сцуко, робот.");
-		Step_Add_Dialog ("Привет, меня зовут <b>ГИЗМО</b>. И я - робот.");
+		Step_Add_Dialog ("Привет, меня зовут <b>ГИЗМО</b>. И, к сожалению, я - робот.");
 		Step_Add_Dialog ("Тяжело быть роботом - я ничего не умею делать, пока мне не прикажут...");
-		Step_Add_Dialog ("Разговаривать со мной надо определённым образом, но всё по порядку.");
+		Step_Add_Dialog ("Разговаривать со мной надо определённым образом, но, всё по порядку.");
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
-		Step_Add_Tutorial_Arrow_Show (-560f, 1f);
-		Step_Add_Dialog ("У меня есть функция Start, она вызывается сразу при моём запуске.");
-		Step_Add_Tutorial_RedPanel_Show ( 1f, 3f, 99f, 6f );
+		Step_Add_Tutorial_Arrow_Show (-560F, 1F);
+		Step_Add_Dialog ("У меня есть метод Start, он вызывается сразу при моём запуске.");
+		Step_Add_Tutorial_RedPanel_Show (1F, 3F, 99F, 6F);
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n//All code here will be executed\n//  when you press Play\n\n}");
-		Step_Add_Dialog ("Это значит, что весь код находящийся в теле функции Start - т.е. между\nфигурными скобками { и } - выполнится сразу после нажатия кнопки \"Play\".");
+		Step_Add_Dialog ("Метод - это блок кода, который выполняет некоторые действия.");
+		Step_Add_Dialog ("Весь код, находящийся в теле метода Start, т.е. между\nфигурными скобками { и } - выполнится сразу после нажатия кнопки \"Play\".");
 		Step_Add_Tutorial_Arrow_Hide ();
 		Step_Add_Tutorial_RedPanel_Hide ();
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
 		Step_Add_Dialog_Important ("<c>BOT</c>");
-		Step_Add_Dialog ("В коде, ко мне надо обращатся через переменную BOT. Это объектная переменная, т.е. она содержит ссылку на класс... Бла-бла-бла... забудь.\nПока достаточно знать что в переменной BOT сижу я сам.");
-		Step_Add_Dialog ("ВОТ, это в смысле <b>БОТ</b>, то есть я. А не <b>ВОТ</b> в смысле \"вот\". То есть \"БОТ\" английскими буквами, а не \"Вот, нате вам креньдельки под язык, да куличики в ноздри\".\nПонятно? Нет? Ну и пофиг вообще...");
-		//Step_Add_Dialog ("У меня много разных методов и свойств: я умею двигаться, подбирать лут, драться, летать, хуярить кувалдой по стенам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углублятся.");
-		Step_Add_Dialog ("У меня много разных методов и свойств: я умею двигаться, подбирать лут, драться, летать, фигачить кувалдой по стенам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углублятся.");
-		Step_Add_Dialog ("Методы - это команды мне, заставляющие меня что-то сделать.");
-		Step_Add_Dialog ("А свойства... Да хрен с ними со свойствами. Потом, как ни будь...");
-		Step_Add_Dialog ("Попробуем что ни будь не сложное.\nУ меня есть метод Say, он заставляет меня говорить.\n");
+		Step_Add_Dialog ("В коде ко мне надо обращаться, используя статический класс <c>BOT</c>. Что такое статический класс, сейчас знать не особо нужно. Просто знай, что все команды, обращённые ко мне, начинаются с \"<c>BOT</c>.\"\nИменно с точкой, после <c>BOT</c>, она там специально!");
+		Step_Add_Dialog ("<c>ВОТ</c>, это в смысле <b>БОТ</b>, то есть я. А не <b>ВОТ</b> в смысле \"вот\". То есть \"БОТ\" английскими буквами, а не \"Вот, нате вам креньдельки под язык, да куличики в ноздри\".\nПонятно? Нет? Ну и ладно...");
+		Step_Add_Dialog ("У меня много разных методов: я умею двигаться, подбирать лут, драться, летать, фигачить кувалдой по унитазам, крафтить туалетную бумагу и даже... э-эээ...\nДавай не будем пока углубляться.");
+		Step_Add_Dialog ("Методы, которые начинаются с \"<c>BOT</c>.\" - это команды лично мне, заставляющие меня что-то сделать.");
+		Step_Add_Dialog ("Попробуем что-нибудь несложное.\nУ меня есть метод <m>Say</m>, он заставляет меня говорить.\n");
 		Step_Add_Dialog_Important_Continue (".<m>Say</m>");
-		Step_Add_Dialog_Continue ("Что бы вызвать метод, нужно написать мою переменную, затем точку и наконец имя метода.");
-		Step_Add_Dialog ("У этого метода есть один обязательный параметр - собственно текст, который я должен сказать.\n");
-		//Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Хуйня!\"</str>)"); //color: 195 145 91; Hex: C3915B
-		Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Гизмо!\"</str>)"); //color: 195 145 91; Hex: C3915B
-		Step_Add_Dialog_Continue ("Параметры указываются в скобках после имени метода.\nНу, и потому что это текст - он должен быть в кавычках, иначе я не пойму - что я должен интерпретировать как часть кода, а что как текст.");
+		Step_Add_Dialog_Continue ("Чтобы вызвать (выполнить) мой метод, нужно написать название моего класса, затем точку и, наконец, имя метода.");
+		Step_Add_Dialog ("У этого метода есть один обязательный параметр - собственно, текст, который я должен сказать.\n");
+		Step_Add_Dialog_Important_Continue ("(<str>\"Привет мир, я Гизмо!\"</str>)");
+		Step_Add_Dialog_Continue ("Параметры указываются в скобках после имени метода.\nНу, и, потому, что это текст, он должен быть в кавычках, иначе я не пойму, что я должен интерпретировать как часть кода, а что как текст.");
 		Step_Add_Dialog_Important_Continue (";");
-		Step_Add_Dialog ("Наконец, после каждой команды, должна стоять точка с запятой. Получается как-то так.");
-		Step_Add_Dialog ("К сожалению, я тупой, и регистр букв имеет значение. Т.е. если написать say маленькими буквами, или большими (SAY) - я не пойму.\n");
-		Step_Add_Dialog_Continue ("Всё должно быть написано именно так, как задумано изначально. В данном случае - с большой буквы: Say.");
-		Step_Add_Dialog ("А теперь, заставьте меня сказать \"Привет\", или что-то типа того...");
+		Step_Add_Dialog ("Наконец, после каждой команды должна стоять точка с запятой. Получается как-то так.");
+		Step_Add_Dialog ("К сожалению, я глуповат, и регистр букв имеет значение. Т.е., если, к примеру, написать say только маленькими буквами, или только большими (SAY) - я не пойму.\n");
+		Step_Add_Dialog_Continue ("Всё должно быть написано именно так, как заложено изначально. В данном случае - с большой буквы: <m>Say</m>.");
+		Step_Add_Dialog ("А теперь, заставьте меня сказать \"Привет\", или что-то, типа того...");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Check_Requirement ("SAY");
-		Step_Add_LevelComplete("Level 1-1 - Методы.", "Level 001-01");
+		Step_Add_LevelComplete ("Level 1-1 - Методы.", "Level 001-01");
 
 		//Level 1-2
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
@@ -234,14 +231,14 @@ void Start ()
 		Step_Add_ScriptControls_Hide ();
 		Step_Add_Dialog ("Хорошо, продолжим.");
 		Step_Add_Dialog ("Итак, здесь мы видим маленький красненький квадратик.");
-		Step_Add_Dialog ("Вообще, когда мы видим маленький красненький квадратик - это значит что мне надо попасть туда.");
-		Step_Add_Dialog ("Я хз зачем - просто надо. Возможно, в детстве, мне не хватало маленьких красненьких квадратиков... Не знаю. Потом разберёмся.");
-		Step_Add_Dialog ("Для этого мне надо двигаться. (привет, кэп).");
-		Step_Add_Dialog ("Давай посмотрим, какие методы у меня, как у класса, есть для передвижения...\nDance(), DoCoffee, DestroyAllHumans()... не то... DesintegrateWorld(), MakeSandwitch()... какой же я класный, столько всего умею!");
+		Step_Add_Dialog ("Вообще, когда мы видим маленький красненький квадратик - это значит, что мне надо попасть туда.");
+		Step_Add_Dialog ("Без понятия, зачем - просто надо. Возможно, в детстве, мне не хватало маленьких красненьких квадратиков... Не знаю. Потом разберёмся.");
+		Step_Add_Dialog ("Для этого мне надо двигаться. (Привет, кэп).");
+		Step_Add_Dialog ("Давай посмотрим, какие методы у меня, как у класса, есть для передвижения...\n<m>Dance</m>(), <m>DoCoffee</m>(), <m>DestroyAllHumans</m>()... не, не то... <m>DesintegrateWorld</m>(), <m>MakeSandwitch</m>()... какой же я класный, столько всего умею!");
 		Step_Add_Dialog ("Вот, нашёл.\n");
-		Step_Add_Dialog_Continue ("Метод Move().");
+		Step_Add_Dialog_Continue ("Метод <m>Move</m>().");
 		Step_Add_Dialog_Important ("<c>BOT</c>.<m>Move</m>();");
-		Step_Add_Dialog ("У этого метода нет параметров, которые надо указывать в скобках. Но сами скобки всё равно обязательны - просто для того, что бы я понял что это вызов метода.");
+		Step_Add_Dialog ("У этого метода нет параметров, которые надо указывать в скобках. Но сами скобки всё равно обязательны - просто для того, чтобы я понял, что это вызов метода.");
 		Step_Add_Dialog ("Попробуй передвинуть меня.");
 		Step_Add_Dialog_Hide ();
 		Step_Add_ScriptControls_Show ();
@@ -249,87 +246,85 @@ void Start ()
 		Step_Add_ScriptControls_Hide ();
 		Step_Add_Pause ();
 		Step_Add_Dialog_Show ();
-		//Step_Add_Dialog ("Сука, не туда-а-а-а....");
 		Step_Add_Dialog ("Не туда-а-а-а....");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Resume ();
 		Step_Add_Check_Requirement ("BOT.Position.y < -5");
 		Step_Add_ScriptControls_Show ();
-		Step_Add_Dialog ("Ладно, вырубай уже. Всё, я упал - кина не будет."); //!!!Clicking this panel while in next requirement step casuse skip event.
+		Step_Add_Dialog ("Ладно, вырубай уже. Всё, я упал - кина не будет.");
 		Step_Add_Check_Requirement ("ScriptStopped");
 		Step_Add_Dialog ("Нехорошо вышло :(\n");
-		Step_Add_Dialog_Continue ("Очевидно метод Move() двигает меня вперёд. Но сейчас я стою, направленынй в другую сторону.");
+		Step_Add_Dialog_Continue ("Очевидно, метод <m>Move</m>() двигает меня вперёд. Но сейчас я стою, направленый в другую сторону.");
 		Step_Add_Dialog_Important ("<c>BOT</c>.<m>Rotate</m>(n);");
-		Step_Add_Dialog ("Попробуй перед методом Move() вызвать метод Rotate(n), где n - это число, в градусах, на которое я должен повернуться.");
+		Step_Add_Dialog ("Попробуй перед методом <m>Move</m>() вызвать метод <m>Rotate</m>(n), где n - это число, в градусах, на которое я должен повернуться.");
 		Step_Add_Dialog ("Если число будет положительное - я повернусь по часовой стрелке, если отрицательное - то против часовой стрелки.\n");
-		Step_Add_Dialog_Continue ("И да, поскольку это число, а не текст, то его не нужно брать в кавычки - и так сойдёт.");
+		Step_Add_Dialog_Continue ("И, да, поскольку это число, а не текст, то его не нужно брать в кавычки - и так сойдёт.");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Set_Blocked_Instructions ("move(x);");
 		Step_Add_Check_Requirement ("BOT.Position.z > 0.5");
 		Step_Add_Pause ();
 		Step_Add_ScriptControls_Hide ();
-		Step_Add_Dialog ("О да!\nМы почти на месте!");
+		Step_Add_Dialog ("О, да!\nМы почти на месте!");
 		Step_Add_Resume ();
 		Step_Add_Check_Requirement ("BOT.Position.z > 1.5");
-		//Step_Add_Dialog ("Бля...\n");
 		Step_Add_Dialog ("Чёрт...\n");
 		Step_Add_Check_Requirement ("BOT.Position.z > 4");
-		Step_Add_ScriptControls_Show ();		
+		Step_Add_ScriptControls_Show ();
 		Step_Add_Dialog_Continue ("Всё, вырубай.");
 		Step_Add_Check_Requirement ("ScriptStopped");
-		Step_Add_Dialog ("Знаешь, похоже метод Move() в этом виде бесполезен.\nЯ просто пру вперёд, как танк, и в какой то момент сорвусь с площадки или воткнусь в стену.");
+		Step_Add_Dialog ("Знаешь, похоже, метод <m>Move</m>() в этом виде бесполезен.\nЯ просто пру вперёд, как танк, и в какой-то момент сорвусь с площадки или воткнусь в стену.");
 		Step_Add_Dialog_Important ("<c>BOT</c>.<m>Move</m>(d);");
-		Step_Add_Dialog ("Я тут покапался в себе... вобщем, у метода Move() всё таки есть параметр - количество метров, на которое я должен продвинутся.");
-		Step_Add_Dialog ("Это то что нужно. Я этот параметр не заметил, потому что он опционалаен.\n");
+		Step_Add_Dialog ("Я тут покапался в себе... В общем, у метода <m>Move</m>() всё таки есть параметр - количество метров, на которое я должен продвинутся.");
+		Step_Add_Dialog ("Это то, что нужно. Я этот параметр не заметил, потому что он опционалаен, то есть, его можно указывать, а можно и не указывать, иногда так бывает.\n");
 		Step_Add_Dialog_Continue ("Ну да ладно.");
-		Step_Add_Dialog ("Доведи меня уже до этого грёбанного квадрата, и пойдём дальше.");
+		Step_Add_Dialog ("Доведи меня уже до этого треклятого квадрата и пойдём дальше.");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Set_Blocked_Instructions ("");
 		Step_Add_Check_Requirement ("ScriptStopped && BOT.Position.z = 1.5");
 		Step_Add_Skip_Bot_Rebase_Anim ();
 		Step_Add_Dialog ("Yeah!");
-		Step_Add_LevelComplete("Level 1-2 - Больше методов.", "Level 001-02");
+		Step_Add_LevelComplete ("Level 1-2 - Больше методов.", "Level 001-02");
 
 		//Level 1-3a - variables int
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
-		Step_Add_Dialog ("Хорошо, с методами вроде бы разобрались. Давай попробуем переменные.");
+		Step_Add_Dialog ("Хорошо, с методами, вроде бы, разобрались. Давай попробуем переменные.");
 		Step_Add_Dialog ("Переменные - это способ заставить меня чего-то запомнить. И потом вспомнить.\n");
-		Step_Add_Dialog ("Переменные - это ячейки памяти в моей башке. В них можно хранить числа, текст, всякое...\n");
+		Step_Add_Dialog ("Переменные - это ячейки памяти в моей башке. В них можно хранить числа, текст, всякое... Всё это - типы данных.\n");
 		Step_Add_Dialog ("Сначала, чтобы я знал, что ты хочешь использовать переменную, её нужно объявить.\n");
 		Step_Add_Dialog_Important ("<t>int</t> ");
-		Step_Add_Dialog ("Делается это просто - сначала пишем тип данных переменной. Начнём с int - это тип \"целое число\".\n");
-		Step_Add_Dialog_Important_Continue("x");
+		Step_Add_Dialog ("Делается это просто - сначала пишем тип данных переменной. Начнём с <t>int</t> - это тип \"целое число\".\n");
+		Step_Add_Dialog_Important_Continue ("x");
 		Step_Add_Dialog_Continue ("И имя переменной.\n");
 		Step_Add_Dialog_Continue ("В данном случае \"x\" - это имя переменной (прямо как в школе учили), но оно может быть любым, только без пробелов и символов. (знаки подчёркивания использовать можно). \n");
 		Step_Add_Dialog_Continue ("Однако, не стоит давать переменным невменяемые имена типа qwerty или kljsdfgi - просто потому, что потом невозможно понять для чего они нужны, что вообще тут делают и в чём смысл бытия...\n");
-		Step_Add_Dialog_Important_Continue(";");
+		Step_Add_Dialog_Important_Continue (";");
 		Step_Add_Dialog_Continue ("Не забываем точку с запятой в конце.");
-		Step_Add_Dialog ("С этого момента, я знаю, что у меня есть переменная типа int (целое число), под названием \"x\".");
+		Step_Add_Dialog ("С этого момента, я знаю, что у меня есть переменная типа <t>int</t> (целое число), под названием \"x\".");
 		Step_Add_Dialog ("Попробуем выполнить задачку:\n");
-		Step_Add_Dialog_Continue ("Видишь, вот эту крутящуюся штуку?\n");
+		Step_Add_Dialog_Continue ("Видишь вот эту крутящуюся штуку?\n");
 		Step_Add_Dialog_Continue ("Это контейнер квантовой энергии.\n");
 		Step_Add_Dialog_Continue ("Из-за квантовой природы, количество энергии в контейнере не предопределено, и зависит от того, в какой момент он будет собран.\n");
 		Step_Add_Dialog_Continue ("Может быть 0, может 10000");
 		Step_Add_Dialog_Continue (", а может, мёртвый кот - как повезёт.");
-		Step_Add_Dialog ("У меня есть функция PickUp(), которая заставляет меня подобрать контейнер, с клетки, перед которой я нахожусь.\n");
+		Step_Add_Dialog ("У меня есть функция <m>PickUp</m>(), которая заставляет меня подобрать контейнер с клетки, перед которой я нахожусь.\n");
 		Step_Add_Dialog_Continue ("Это не метод, а именно функция.\n");
 		Step_Add_Dialog_Continue ("Разница между методом и функцией в том, что функция возвращает какое-то значение, которое можно, например, запихнуть в переменную.\n");
 		Step_Add_Dialog_Important_Continue ("\nx = <c>BOT</c>.<m>PickUp</m>();");
 		Step_Add_Dialog_Continue ("Примерно вот так.");
-		Step_Add_Dialog ("Функция PickUp() не имеет параметров (да, да, в этот раз точно, я проверил).\n");
+		Step_Add_Dialog ("Функция <m>PickUp</m>() не имеет параметров (да, да, в этот раз точно, я проверил).\n");
 		Step_Add_Dialog_Continue ("И возвращает она количество подобранной энергии.\n");
 		Step_Add_Dialog_Continue ("Т.е. после этого наша переменная \"х\" станет равна количеству собранной энергии.\n");
-		Step_Add_Dialog_Important_Continue ("\n\n<cmt>//Тоже самое, но короче</cmt>\n<t>int</t> x = <c>BOT</c>.<m>PickUp</m>();");
+		Step_Add_Dialog_Important_Continue ("\n\n<cmt>//То же самое, но короче</cmt>\n<t>int</t> x = <c>BOT</c>.<m>PickUp</m>();");
 		Step_Add_Dialog_Continue ("Можно использовать и краткую форму присвоения. Она делает всё то же самое, но писать чуть меньше.\n");
-		Step_Add_Dialog_Continue ("Главное, после объявления переменной, не забывать чего-то в неё запхнуть. Пустые переменные никому не нужны, и вызывают критические ошибки при попытке их использования.");
+		Step_Add_Dialog_Continue ("Главное, после объявления переменной, не забывать чего-то в неё запхнуть. Пустые переменные никому не нужны и вызывают критические ошибки при попытке их использования.");
 		Step_Add_Dialog ("Вон та штука, в конце пути - это весы. На них нужно положить ровно столько энергии, сколько было подобрано из контейнера.");
 		Step_Add_Dialog_Important ("<c>BOT</c>.<m>PutEnergy</m>(x);");
-		Step_Add_Dialog ("Положить энергию на весы можно с помощью метода PutEnergy(x), где \"x\" - это количество енергии, которое нужно положить.\n");
+		Step_Add_Dialog ("Положить энергию на весы можно с помощью метода <m>PutEnergy</m>(x), где \"x\" - это количество енергии, которое нужно положить.\n");
 		Step_Add_Dialog_Continue ("Не забудь, что положить энергию я могу только на весы, стоящие на клетке, прямо передо мной.");
 		Step_Add_Dialog ("Ну что ж, попробуем...");
 		Step_Add_Dialog_Hide ();
 		Step_Add_Check_Requirement ("Collectors");
-		Step_Add_LevelComplete("Level 1-3a - Переменные 1.", "Level 001-03a");
+		Step_Add_LevelComplete ("Level 1-3a - Переменные 1.", "Level 001-03a");
 
 		//Level 1-3b - variables int 2
 		Step_Add_SetScript ("\nvoid Start () \n{\n\n\n\n\n}");
@@ -1238,7 +1233,7 @@ void Start ()
 				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
 				int ind = param.LastIndexOf("(");
 				if (ind <= 0) {Debug.Log("Could not parse: " + cmd + param); continue; }
-				string str_param = param.Substring(0, ind);
+				string str_param = param.Substring(0, ind).Replace("\"", "\\\"");
 				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
 				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
 				if (int_param_arr.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
@@ -1252,7 +1247,7 @@ void Start ()
 				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
 				int ind = param.LastIndexOf("(");
 				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
-				string str_param = param.Substring(0, ind);
+				string str_param = param.Substring(0, ind).Replace("\"", "\\\"");;
 				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
 				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
 				if (int_param_arr.Length != 1) { Debug.Log("Could not parse: " + cmd + param); continue; }
@@ -1266,7 +1261,7 @@ void Start ()
 				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
 				int ind = param.LastIndexOf("(");
 				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
-				string str_param = param.Substring(0, ind);
+				string str_param = param.Substring(0, ind).Replace("\"", "\\\"");;
 				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
 				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
 				if (int_param_arr.Length != 2) { Debug.Log("Could not parse: " + cmd + param); continue; }
@@ -1280,7 +1275,7 @@ void Start ()
 				if (!param.EndsWith(")")) { Debug.Log("Could not parse: " + cmd + param); continue; }
 				int ind = param.LastIndexOf("(");
 				if (ind <= 0) { Debug.Log("Could not parse: " + cmd + param); continue; }
-				string str_param = param.Substring(0, ind);
+				string str_param = param.Substring(0, ind).Replace("\"", "\\\"");;
 				string int_param = param.Substring(ind+1); int_param = int_param.Substring(0, int_param.Length-1);
 				var int_param_arr = int_param.Split(new char[]{','}).Select(x=> int.Parse(x.Trim())).ToArray();
 				if (int_param_arr.Length != 1) { Debug.Log("Could not parse: " + cmd + param); continue; }
