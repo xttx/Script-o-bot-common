@@ -1252,7 +1252,7 @@ public class Options : MonoBehaviour //, IPointerClickHandler
             Options.Bottom_Buttons_Panel.DOKill();
             Options.hideTutorialDialog_Button.DOKill();
             Options.Bottom_Buttons_Panel.DOAnchorPosX(617.5f, anim_duration / 3f).SetUpdate(true);
-            Options.Bottom_Buttons_Panel.DOSizeDelta(new Vector2(-1235f, size_delta_y), anim_duration / 3f).SetUpdate(true);
+            Options.Bottom_Buttons_Panel.DOSizeDelta(new Vector2(-1225f, size_delta_y), anim_duration / 3f).SetUpdate(true);
             Options.hideTutorialDialog_Button.DOAnchorPosY(20f, anim_duration).SetUpdate(true);
             
             //Show collapse button

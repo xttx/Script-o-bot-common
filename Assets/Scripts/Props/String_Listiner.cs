@@ -10,18 +10,6 @@ public class String_Listiner : MonoBehaviour
     public bool required_string_is_concatenate_all_readables = false;
     public UnityEvent OnSayOk;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     public void OnSay(string txt)
     {
         string req = required_string;

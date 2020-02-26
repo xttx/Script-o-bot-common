@@ -21,7 +21,7 @@ public class Loot : MonoBehaviour
     public enum loot_type_enum {
         HP,
         MP,
-        QuantycEnergy,
+        QuanticEnergy,
         Generic
     }
 
@@ -37,7 +37,7 @@ public class Loot : MonoBehaviour
         for (int i = 0; i < transform.childCount; i++)
             default_rotations.Add( transform.GetChild(i).localRotation );
 
-        if (loot_type == loot_type_enum.QuantycEnergy) {
+        if (loot_type == loot_type_enum.QuanticEnergy) {
             //materials_to_dissolve.Add (GetComponent<MeshRenderer>().material);
             materials_to_dissolve.Add (transform.GetChild(0).GetComponent<MeshRenderer>().material);
             materials_to_dissolve.Add (transform.GetChild(1).GetComponent<MeshRenderer>().material);
@@ -82,7 +82,7 @@ public class Loot : MonoBehaviour
     void SetAnim()
     {
         tweens_to_kill.Clear();
-        if (loot_type == loot_type_enum.QuantycEnergy) {
+        if (loot_type == loot_type_enum.QuanticEnergy) {
             tweens_to_kill.Add( transform.GetChild(1).DORotate(new Vector3(0f, 450f, 450f), 3f, RotateMode.FastBeyond360).SetLoops(-1, LoopType.Restart).SetEase(Ease.InOutSine) );
             tweens_to_kill.Add( transform.GetChild(2).DORotate(new Vector3(0f, 450f, 450f), 2f, RotateMode.FastBeyond360).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear) );
             tweens_to_kill.Add( transform.GetChild(3).DORotate(new Vector3(0f, 450f, 450f), 1f, RotateMode.FastBeyond360).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear) );
@@ -208,8 +208,8 @@ public class Loot : MonoBehaviour
                 mat_fx.DOFloat(1f, "_GradientStrength", 0.5f).OnComplete(()=> {
                     mru.IsActive = false;
                     run_to_kill = Run.After(mru.FadeTime, ()=> { 
+                        new_obj.transform.DOKill();
                         Destroy(new_obj);
-
                         //TODO: tweens in list are killed multiple times (for every object - 3 torus and 1 cube)
                         //      but need only once
 

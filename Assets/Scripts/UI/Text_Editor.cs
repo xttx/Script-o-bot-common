@@ -243,7 +243,11 @@ Quaternion qqq = new Quaternion();
     string[] word_key   = new string[]{ "break", "case", "catch", "continue", "do", "else", "finally", "for", "foreach", "goto", "if", "return", "while" };
     string[] word_refl  = new string[]{ "sizeof", "typeof" };
     string[] word_other = new string[]{ "using", "enum", "struct" };
+    enum color_groups { none, alphanumeric, NON_alphanumeric, Quote_Dbl, space, comment };
     List<Text> colored_text = new List<Text>();
+    List<KeyValuePair<Text, Text>> multiline_comments = new List<KeyValuePair<Text, Text>>();
+    Dictionary<Text, int> multiline_comments_rows = new Dictionary<Text, int>();
+    ConcurrentQueue<int> multiline_comments_recolor = new ConcurrentQueue<int>();
 
     //Code suggestion
     bool suggestion_mouse_enabled = true;
@@ -297,8 +301,11 @@ Quaternion qqq = new Quaternion();
 	}
     class changed_rows_info {
         public changed_rows_info(Text r, string txt) { associated_row = r; text = txt; }
+        public changed_rows_info(Text r, string txt, op_type o) { associated_row = r; text = txt; op = o; }
         public string text;
         public Text associated_row;
+        public op_type op = op_type.changed;
+        public enum op_type { changed, deleted, created };
     }
     class variable_info {
         //public variable_info(Text r, classes_dict d) { row = r; classes_dict = d; }
@@ -615,6 +622,7 @@ Quaternion qqq = new Quaternion();
         //Activation / Deactivation
         #region "Activation / Deactivation OnMouseClick"
         if (Input.GetKeyDown(KeyCode.Mouse0)) {
+            //Debug.Log("Mouse over me = " + mouse_is_over_me);
             if (Activate_Settings.IsActive) {
                 if (!mouse_is_over_me && Activate_Settings.DeActivate == Activate_Scheme_Info.DeActivate_Enum.OnClickOutside) DeActivate();
             } else {
@@ -723,13 +731,16 @@ Quaternion qqq = new Quaternion();
                     Row_Split(current_row, current_chr);
                     Syntax_Highlight ( current_row );
                     Syntax_Highlight ( current_row + 1 );
-                    if (sel == "") {
-                        changed_rows.Enqueue( new changed_rows_info(text_rows[current_row], text_rows[current_row].text) );
-                        changed_rows.Enqueue( new changed_rows_info(text_rows[current_row+1], text_rows[current_row+1].text) );
-                    }
                 } else {
                     Create_New_Row(current_row + 1);
                 }
+
+                if (sel == "") {
+                    //If text was selected, changed_rows is added in Selection_Get_Text()
+                    changed_rows.Enqueue( new changed_rows_info(text_rows[current_row], text_rows[current_row].text) );
+                    changed_rows.Enqueue( new changed_rows_info(text_rows[current_row+1], text_rows[current_row+1].text, changed_rows_info.op_type.created) );
+                }
+
                 current_row++; current_chr = 0;
                 Cursor_Update_Position(); Selection_Clear(); Cursor_Blink(true); Update_Scroll_V_Size(); Update_Scroll_H_Size();
                 Close_Intellisense();
@@ -971,6 +982,10 @@ Quaternion qqq = new Quaternion();
             type_text(type);
             if (pair_autoclosed) { current_chr--; Cursor_Update_Position(); }
         }
+
+        if (!Syntax_Highlight_Enable) return;
+        int dequeue;
+        while (multiline_comments_recolor.TryDequeue(out dequeue)){ Syntax_Highlight(dequeue); }
     }
 
     void type_text(string type, bool no_update = false) {
@@ -1371,6 +1386,9 @@ Quaternion qqq = new Quaternion();
             colored_text[i].GetComponent<RectTransform>().anchoredPosition += new Vector2(0f, lineHeight);
         }
 
+        //Handle multiline comment
+        changed_rows.Enqueue ( new changed_rows_info(text_rows[row], "\v" + row.ToString() ) );
+
         Destroy(text_rows[row].gameObject);
         text_rows.RemoveAt(row);
         text_char_w.RemoveAt(row);
@@ -1663,6 +1681,25 @@ Quaternion qqq = new Quaternion();
         colored_text[row].gameObject.SetActive(true);
         text_rows[row].gameObject.SetActive(false);
 
+        int start = 0;
+        string txt = text_rows[row].text;
+        string txt_new = "";
+
+        //Multiline comments
+        if (multiline_comments_rows.ContainsKey(text_rows[row])) {
+            if (multiline_comments_rows[text_rows[row]] == 1) {
+                colored_text[row].text = "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_comment) + ">" + txt + "</color>";
+                return;
+            }
+            if (multiline_comments_rows[text_rows[row]] == 2 || multiline_comments_rows[text_rows[row]] == 10) {
+                int ind = text_rows[row].text.IndexOf("*/");
+                if (ind >= 0) {
+                    txt_new = "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_comment) + ">" + txt.Substring(0, ind + 2) + "</color>";
+                    start = ind + 2;
+                }
+            }
+        }
+
         //keywords
         Dictionary<Color, string[]> keywords_dict = new Dictionary<Color, string[]>();
         keywords_dict.Add(Color_Scheme.t_types, word_types);
@@ -1672,34 +1709,49 @@ Quaternion qqq = new Quaternion();
         keywords_dict.Add(Color_Scheme.t_refl, word_refl);
         keywords_dict.Add(Color_Scheme.t_other, word_other);
 
-        string txt = text_rows[row].text;
-        string txt_new = "";
-        int group_prev = -1;
+        color_groups group_prev = color_groups.none;
         bool is_inside_color_tag = false;
-        for (int i = 0; i < txt.Length; i++) {
-            char c = txt[i];
-            if (c == ' ') { txt_new += c; if (group_prev != 2) { group_prev = 3; } continue; }
+        for (int i = start; i < txt.Length; i++) {
+            //Debug.Log(i);
 
-            int group_cur = 0;
-            if ( !charset_alphanumeric.Contains(c) ) group_cur = 1;
+            char c = txt[i];
+            if (c == ' ') { txt_new += c; if (group_prev != color_groups.Quote_Dbl) { group_prev = color_groups.space; } continue; }
+
+            color_groups group_cur = color_groups.alphanumeric;
+            if ( !charset_alphanumeric.Contains(c) ) group_cur = group_cur = color_groups.NON_alphanumeric;
 
             //Quote
-            if (group_prev == 2) group_cur = 2;
-            if ( c == '"' && group_cur != 2) {
+            if (group_prev == color_groups.Quote_Dbl) group_cur = color_groups.Quote_Dbl;
+            if ( c == '"' && group_cur != color_groups.Quote_Dbl) {
                 if (is_inside_color_tag) txt_new += "</color>";
                 txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_quote) + ">"; is_inside_color_tag = true;
-                group_cur = 2;
+                group_cur = color_groups.Quote_Dbl;
             }
 
             //Comment
-            if (group_cur != 2 && i < txt.Length - 1 && c == '/' && txt[i+1] == '/') {
+            if (group_cur != color_groups.Quote_Dbl && i < txt.Length - 1 && c == '/' && txt[i+1] == '/') {
                 if (is_inside_color_tag) txt_new += "</color>";
                 txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_comment) + ">" + txt.Substring(i);
                 is_inside_color_tag = true; break;
             }
 
+            //Multiline comment
+            if (group_cur != color_groups.Quote_Dbl && i < txt.Length - 1 && c == '/' && txt[i+1] == '*') {
+                string color_comment = "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_comment) + ">";
+                if (is_inside_color_tag) { txt_new += "</color>"; is_inside_color_tag = false; }
+                txt_new += color_comment;
+                int end_comment_ind = txt.IndexOf("*/", i+2);
+                if (end_comment_ind >= 0) {
+                    txt_new += txt.Substring(i, end_comment_ind - i + 2) + "</color>";
+                    i = end_comment_ind + 1; continue;
+                } else {
+                    txt_new += txt.Substring(i);
+                    is_inside_color_tag = true; break;
+                }
+            }
+
             //Keywords
-            if (group_cur != 2 && group_prev != 0) {
+            if (group_cur != color_groups.Quote_Dbl && group_prev != color_groups.alphanumeric) {
                 bool found_keyword = false;
                 
                 foreach (var kv in keywords_dict) {
@@ -1713,7 +1765,7 @@ Quaternion qqq = new Quaternion();
                             if (is_inside_color_tag) txt_new += "</color>";
                             txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(kv.Key) + ">";
                             txt_new += txt.Substring(i, k.Length) + "</color>";
-                            is_inside_color_tag = false; i += k.Length - 1; group_prev = -1; found_keyword = true; break;
+                            is_inside_color_tag = false; i += k.Length - 1; group_prev = color_groups.none; found_keyword = true; break;
                         }
                     }
                     if (found_keyword) break;
@@ -1722,17 +1774,17 @@ Quaternion qqq = new Quaternion();
             }
 
             //Letters and Symbols
-            if ( group_cur != group_prev && group_cur != 2 ) {
+            if ( group_cur != group_prev && group_cur != color_groups.Quote_Dbl ) {
                 if (is_inside_color_tag) { txt_new += "</color>"; is_inside_color_tag = false; }
-                if (group_cur == 0) { txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_std) + ">"; is_inside_color_tag = true; }
-                if (group_cur == 1) { txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_sym) + ">"; is_inside_color_tag = true; }
+                if (group_cur == color_groups.alphanumeric)     { txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_std) + ">"; is_inside_color_tag = true; }
+                if (group_cur == color_groups.NON_alphanumeric) { txt_new += "<color=#" + ColorUtility.ToHtmlStringRGBA(Color_Scheme.t_sym) + ">"; is_inside_color_tag = true; }
             }
 
             txt_new += c;
 
             //Quote closing
-            if ( c == '"' && group_prev == 2) {
-                group_cur = -1;
+            if ( c == '"' && group_prev == color_groups.Quote_Dbl) {
+                group_cur = color_groups.none;
                 txt_new += "</color>"; is_inside_color_tag = false;
             }
 
@@ -2631,6 +2683,8 @@ Quaternion qqq = new Quaternion();
             }
 
             while ( changed_rows.TryDequeue(out rows_Info) ) {
+                if (rows_Info.text.StartsWith("\v")) { Intellisense_var_check_bg_MultilineComments(rows_Info); continue; }
+
                 //Remove all variables and row association of current row
                 if (vars_rows_assoc_rev.ContainsKey(rows_Info.associated_row)) {
                     Intellisense_var_check_bg_RemoveVarFromRow(rows_Info.associated_row);
@@ -2638,6 +2692,8 @@ Quaternion qqq = new Quaternion();
                 if (using_rows_assoc_rev.ContainsKey(rows_Info.associated_row)) {
                     Intellisense_var_check_bg_RemoveUsingFromRow(rows_Info.associated_row);
                 }
+
+                Intellisense_var_check_bg_MultilineComments(rows_Info);
 
                 //Remove comments
                 int comment_ind = rows_Info.text.IndexOf("//");
@@ -2741,6 +2797,285 @@ Quaternion qqq = new Quaternion();
             }
             System.Threading.Thread.Sleep(300);
         }
+    }
+    void Intellisense_var_check_bg_MultilineComments(changed_rows_info row) {
+        //Debug.Log(row.op.ToString() + " " + row.text);
+        try {
+        //TODO: if ctrl+z restore deleted line inside multiline comment - the line is colorized as if it was not commented
+        //DONE: if enter is pressed in the middle of the middle-multicomment line - incorrect behaviour
+        //DONE: handle multiline comment end and start new on single line
+        //DONE: create a comment. create another comment_start above, to encapsulate previous comment. remove and readd this new start_comment. remove comment_start of encapsulated comment - it should not be decolorized
+        if(row.text.StartsWith("\v")) {
+            //Deleted row
+            int old_row_ind = int.Parse(row.text.Substring(1));
+            if (multiline_comments_rows.ContainsKey(row.associated_row)) {
+                if (multiline_comments_rows[row.associated_row] == 1) {
+                    //Delete middle comment row
+                    multiline_comments_rows.Remove(row.associated_row);
+                }
+                else if (multiline_comments_rows[row.associated_row] == 0) {
+                    //Delete start comment row
+                    int m_ind = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row); if (m_ind < 0) return;
+
+                    //Clear comment
+                    int end_row = multiline_comments[m_ind].Value == null ? text_rows.Count - 1 : text_rows.IndexOf(multiline_comments[m_ind].Value);
+                    multiline_comments.RemoveAt(m_ind);
+                    Comment_Clear_Lines(old_row_ind, end_row);
+                }
+                else if (multiline_comments_rows[row.associated_row] == 2) {
+                    //Delete end comment row
+                    int m_ind = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row, false); if (m_ind < 0) return;
+
+                    //Add more lines to comment
+                    multiline_comments[m_ind] = new KeyValuePair<Text, Text>(multiline_comments[m_ind].Key, null);
+                    multiline_comments_rows.Remove(row.associated_row);
+                    Comment_Add_Lines(old_row_ind, m_ind);
+                }
+                else if (multiline_comments_rows[row.associated_row] == 10) {
+                    //Delete end of comment AND start new comment single line - convert to middle line and merge comments
+                    //TODO
+                    int m_ind1 = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row, false);   if (m_ind1 < 0) return;
+                    int m_ind2 = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row);          if (m_ind2 < 0) return;
+
+                    multiline_comments[m_ind1] = new KeyValuePair<Text, Text>(multiline_comments[m_ind1].Key, multiline_comments[m_ind2].Value);
+                    multiline_comments.RemoveAt(m_ind2);
+                    multiline_comments_rows.Remove(row.associated_row);
+                }
+            }
+            return;
+        }
+
+        int ind_cmt_start = row.text.LastIndexOf("/*");
+        int ind_cmt_end = row.text.LastIndexOf("*/");
+
+        string txt = row.text;
+        int row_ind = text_rows.IndexOf(row.associated_row);
+
+        if (row.op == changed_rows_info.op_type.created) {
+            //Created row
+            //TODO: this is not called if row is split by enter press with some text selected
+            //DONE: this is not called if created new empty row by pressing enter at the very end or begin of line or on empty line - new line will not be colored
+            if (multiline_comments_rows.ContainsKey(row.associated_row) && multiline_comments_rows[row.associated_row] == 2) 
+                return; //Looks like this case is correctly handled by call of ROW_CHANGE op of previous line
+            if (multiline_comments_rows.ContainsKey(row.associated_row) && multiline_comments_rows[row.associated_row] == 10) 
+                return; //Looks like this case is correctly handled by call of ROW_CHANGE op of previous line
+
+            if (row_ind > 0) {
+                var created_from_row = text_rows[row_ind-1];
+                if (multiline_comments_rows.ContainsKey(created_from_row)) {
+                    //Debug.Log("-1 - mc " + multiline_comments_rows[created_from_row]);
+                    if (multiline_comments_rows[created_from_row] == 1) {
+                        if (multiline_comments_rows.ContainsKey(row.associated_row))
+                            multiline_comments_rows[row.associated_row] =  1;
+                        else
+                            multiline_comments_rows.Add(row.associated_row, 1);
+                        multiline_comments_recolor.Enqueue(row_ind);
+                    }
+                    else if (multiline_comments_rows[created_from_row] == 0) {
+                        if ( created_from_row.text.Contains ("/*") ) {
+                            multiline_comments_rows.Add(row.associated_row, 1);
+                            multiline_comments_recolor.Enqueue(row_ind);
+                        } else if ( text_rows[row_ind].text.Contains ("/*") ) {
+                            //Looks like this case is correctly handled by call of ROW_CHANGE op of previous line
+                        } else {
+                            //TODO
+                        }
+                    }
+                    else if (multiline_comments_rows[created_from_row] == 2) {
+                        //Looks like this case is correctly handled by call of ROW_CHANGE op of previous line
+                    }
+                    else if (multiline_comments_rows[created_from_row] == 10) {
+                        //Looks like this case is correctly handled by call of ROW_CHANGE op of previous line
+                    }
+                    return;
+                }
+            }
+        }
+
+        int in_comment = -1;
+        if (multiline_comments_rows.ContainsKey(text_rows[row_ind])) in_comment = multiline_comments_rows[text_rows[row_ind]];
+
+        //Check for new comments
+        if (in_comment == -1) {
+            if (ind_cmt_start >= 0 && ind_cmt_end < ind_cmt_start) {
+                //Start comment row
+                multiline_comments.Add( new KeyValuePair<Text, Text>(text_rows[row_ind], null) );
+                multiline_comments_rows.Add(text_rows[row_ind], 0);
+                multiline_comments_recolor.Enqueue(row_ind);
+                Comment_Add_Lines(row_ind + 1, multiline_comments.Count - 1);
+            }
+        }
+
+        int Get_Index_Of_Multiline_Comment() {
+            int m_ind = -1;
+            for (int t = 0; t < multiline_comments.Count; t++) {
+                if (text_rows.IndexOf(multiline_comments[t].Key) <= row_ind && (multiline_comments[t].Value == null || text_rows.IndexOf(multiline_comments[t].Value) >= row_ind)) {
+                    m_ind = t; break;
+                }
+            }
+            return m_ind;
+        }
+        int Get_Index_Of_Multiline_Comment_By_KV(Text find, bool start = true) {
+            int m_ind = -1;
+            for (int t = 0; t < multiline_comments.Count; t++) {
+                Text ttt = start ? multiline_comments[t].Key : multiline_comments[t].Value;
+                if (ttt == find) { m_ind = t; break; }
+            }
+            return m_ind;
+        }
+        void Comment_Add_Lines(int start, int mc_index) {
+            for (int r = start; r < text_rows.Count; r++) {
+                if (multiline_comments_rows.ContainsKey(text_rows[r])) {
+                    //check if we hit another comment
+                    if (multiline_comments_rows[text_rows[r]] == 0) {
+                        //we hit start of another comment - merge both comments
+                        int m_ind = Get_Index_Of_Multiline_Comment_By_KV( text_rows[r] ); if (m_ind < 0) return;
+
+                        multiline_comments_rows[text_rows[r]] = 1;
+                        multiline_comments[mc_index] = new KeyValuePair<Text, Text>(multiline_comments[mc_index].Key, multiline_comments[m_ind].Value);
+                        multiline_comments.RemoveAt(m_ind);
+                        multiline_comments_recolor.Enqueue(r);
+                    } else if (multiline_comments_rows[text_rows[r]] == 1) {
+                        //we hit middle of another comment
+                        Debug.Log("TextEditor Multiline comment highlight: while adding new comment, we hit middle of another comment, this should never happens!");
+                    } else if (multiline_comments_rows[text_rows[r]] == 2) {
+                        //we hit end of another comment
+                        Debug.Log("TextEditor Multiline comment highlight: while adding new comment, we hit end of another comment, this should never happens!");
+                    } else if (multiline_comments_rows[text_rows[r]] == 10) {
+                        //we hit end of comment AND start of new comment on single line
+                        Debug.Log("TextEditor Multiline comment highlight: while adding new comment, we hit end of comment AND start of new comment on single line, this should never happens!");
+                    }
+                    break;
+                } else if (text_rows[r].text.Contains("*/")) {
+                    //End comment row
+                    multiline_comments[mc_index] = new KeyValuePair<Text, Text>(multiline_comments[mc_index].Key, text_rows[r]);
+                    multiline_comments_rows.Add(text_rows[r], 2);
+                    multiline_comments_recolor.Enqueue(r);
+                    break;
+                } else {
+                    //Mark new middle comment rows
+                    multiline_comments_rows.Add(text_rows[r], 1);
+                    multiline_comments_recolor.Enqueue(r);
+                }
+            }
+        }
+        void Comment_Clear_Lines(int start, int end) {
+            int ind_of_new_comment = -1;
+            for (int r = start; r <= end; r++) {
+                //check if we have new start of comment on cleared lines
+                if (ind_of_new_comment <0 && text_rows[r].text.Contains("/*")) { ind_of_new_comment = r; }
+
+                multiline_comments_rows.Remove(text_rows[r]);
+                multiline_comments_recolor.Enqueue(r);
+            }
+
+            //if we have new start of comment on cleared lines
+            if (ind_of_new_comment >=0 ) {
+                var t = text_rows[ind_of_new_comment];
+                changed_rows_info cri = new changed_rows_info(t, t.text);
+                Intellisense_var_check_bg_MultilineComments(cri);
+            }
+        }
+
+        //Update old comments
+        if ((in_comment == 0)) {
+            //Remove old comment start
+            if (ind_cmt_start == -1 || ind_cmt_end > ind_cmt_start) {
+                int m_ind = Get_Index_Of_Multiline_Comment();
+                if (m_ind >= 0) {
+                    int end_row = multiline_comments[m_ind].Value == null ? text_rows.Count - 1 : text_rows.IndexOf(multiline_comments[m_ind].Value);
+                    multiline_comments.RemoveAt(m_ind);
+                    Comment_Clear_Lines(row_ind, end_row);
+                }
+            }
+        }
+        if ((in_comment == 1)) {
+            //Add new end of comments
+            if (ind_cmt_end >= 0) {
+                int m_ind = Get_Index_Of_Multiline_Comment();
+                if (m_ind >= 0) {
+                    if (ind_cmt_start > ind_cmt_end) {
+                        //We have and start of new comment on this same line
+                        multiline_comments_rows[text_rows[row_ind]] = 10;
+                        multiline_comments_recolor.Enqueue(row_ind);
+                        var t = multiline_comments[m_ind].Value;
+                        multiline_comments[m_ind] = new KeyValuePair<Text, Text>(multiline_comments[m_ind].Key, text_rows[row_ind]);
+                        multiline_comments.Add( new KeyValuePair<Text, Text>(text_rows[row_ind], t) );
+                    } else {
+                        //Remove comment from following lines
+                        int end_row = multiline_comments[m_ind].Value == null ? text_rows.Count - 1 : text_rows.IndexOf(multiline_comments[m_ind].Value);
+                        multiline_comments[m_ind] = new KeyValuePair<Text, Text>(multiline_comments[m_ind].Key, text_rows[row_ind]);
+                        multiline_comments_rows[text_rows[row_ind]] = 2;
+                        multiline_comments_recolor.Enqueue(row_ind);
+                        Comment_Clear_Lines(row_ind + 1, end_row);
+                    }
+                }
+            }
+        }
+        if ((in_comment == 2)) {
+            if (ind_cmt_end < 0) {
+                //Remove end of comments
+                int m_ind = Get_Index_Of_Multiline_Comment();
+                if (m_ind >= 0 && multiline_comments[m_ind].Value == text_rows[row_ind]) {
+                    multiline_comments[m_ind] = new KeyValuePair<Text, Text>(multiline_comments[m_ind].Key, null);
+                    multiline_comments_rows[text_rows[row_ind]] = 1;
+                    multiline_comments_recolor.Enqueue(row_ind);
+                    Comment_Add_Lines(row_ind + 1, m_ind);
+                }
+            } else if (ind_cmt_start >=0 && ind_cmt_end < ind_cmt_start) {
+                //Added start of new comment on the same line - this is the same procedure as "add new comment"
+                multiline_comments.Add( new KeyValuePair<Text, Text>(text_rows[row_ind], null) );
+                multiline_comments_rows[text_rows[row_ind]] = 10;
+                multiline_comments_recolor.Enqueue(row_ind);
+                Comment_Add_Lines(row_ind + 1, multiline_comments.Count - 1);
+            }
+        }
+        if ((in_comment == 10)) {
+            //This is a end of comment AND start of new comment on single line
+            if (ind_cmt_end < 0) {
+                //end comment removed - convert to middle line and merge comments
+                int m_ind1 = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row, false);   if (m_ind1 < 0) return;
+                int m_ind2 = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row);          if (m_ind2 < 0) return;
+
+                //multiline_comments[m_ind1] = new KeyValuePair<Text, Text>(multiline_comments[m_ind1].Key, multiline_comments[m_ind2].Value);
+                multiline_comments[m_ind1] = new KeyValuePair<Text, Text>(multiline_comments[m_ind1].Key, null);
+                multiline_comments.RemoveAt(m_ind2);
+                multiline_comments_rows[text_rows[row_ind]] = 1;
+                multiline_comments_recolor.Enqueue(row_ind);
+                //TODO: remove cleared rows from multiline_comments_rows
+
+                //in case we updated this row by creating new (pressing enter) - find end of comment
+                for (int i = row_ind + 1; i < text_rows.Count; i++) {
+                    multiline_comments_rows[text_rows[i]] = 1;
+                    multiline_comments_recolor.Enqueue(i);
+                    if (text_rows[i].text.Contains("*/")) {
+                        changed_rows_info cri = new changed_rows_info(text_rows[i], text_rows[i].text);
+                        Intellisense_var_check_bg_MultilineComments(cri);
+                        break;
+                    }
+                }
+            }
+            else if (ind_cmt_start < 0 || ind_cmt_start < ind_cmt_end) {
+                //start comment removed - convert to end comment and clear following lines
+                int m_ind = Get_Index_Of_Multiline_Comment_By_KV(row.associated_row); if (m_ind < 0) return;
+                int end_row = multiline_comments[m_ind].Value == null ? text_rows.Count - 1 : text_rows.IndexOf(multiline_comments[m_ind].Value);
+                multiline_comments.RemoveAt(m_ind);
+                multiline_comments_rows[text_rows[row_ind]] = 2;
+                multiline_comments_recolor.Enqueue(row_ind);
+                Comment_Clear_Lines(row_ind + 1, end_row);
+            }
+        }
+
+        } catch (Exception e) {
+            Debug.Log("EXCEPTION: " + e.Message);
+        }
+
+        //Debug
+        // for (int i = 0; i < multiline_comments.Count; i++) {
+        //     int i1 = multiline_comments[i].Key == null ? -1 : text_rows.IndexOf( multiline_comments[i].Key ); 
+        //     int i2 = multiline_comments[i].Value == null ? -1 : text_rows.IndexOf( multiline_comments[i].Value );
+        //     Debug.Log("Multiline comment " + i + " : " + i1 + " - " + i2);
+        // }
     }
     void Intellisense_var_check_bg_RemoveVarFromRow(Text row) {
         string[] tmp; variable_info[] tmp2;
@@ -3456,6 +3791,7 @@ Quaternion qqq = new Quaternion();
 
     public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData) {
         mouse_is_over_me = true;
+        //Debug.Log("Text_Editor: Pointer enter.");
         if (!Activate_Settings.IsActive) {
             if (Activate_Settings.Activate == Activate_Scheme_Info.Activate_Enum.OnMouseOver) Activate();
         }
@@ -3466,6 +3802,7 @@ Quaternion qqq = new Quaternion();
     }
     public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData) {
         mouse_is_over_me = false;
+        //Debug.Log("Text_Editor: Pointer exit.");
         if (Activate_Settings.IsActive) {
             if (Activate_Settings.DeActivate == Activate_Scheme_Info.DeActivate_Enum.OnMouseOut) DeActivate();
         }
@@ -3503,6 +3840,7 @@ public class Text_Editor_Child_Element : MonoBehaviour, IPointerEnterHandler, IP
             //Debug.Log("Mouse Leave - Disabled: " + gameObject.name); 
             te.OnPointerExitChild(null); 
         }
+        mouse_is_on_me = false;
     }
 }
 public class Text_Editor_Suggestion_Item : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler {

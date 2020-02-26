@@ -38,6 +38,9 @@ public class Switch : MonoBehaviour, Engine.ISetable, Engine.IStatableBool, Engi
 
     public void SetState(bool b, bool from_bot = false)
     {
+        //Because in level array2 switches spawns disabled, this cause null reference to pimpa when starting script
+        if (pimpa == null) { Start(); }
+
         if (b) {
             pimpa.localRotation = Quaternion.Euler(-40f, 0f, 0f);
             mat_for_emission.SetColor("_EmissionColor", new Color(0.24f, 0.9f, 0.13f, 1f));
@@ -100,12 +103,12 @@ public class Switch : MonoBehaviour, Engine.ISetable, Engine.IStatableBool, Engi
             //if (OnRequirementMet == null) return;
             if (switch_group == null) {
                 if (OnRequirementMet != null) { OnRequirementMet.Invoke(); } 
-                if (send_engine_event) { Engine.SetRequirement("Switch"); }
+                if (send_engine_event) { Engine.SetRequirement("Switch"); } //Debug.Log(gameObject.name); }
             } else {
                 int req_met_count = switch_group.switch_list.Where(sw=> sw.switch_is_in_required_position).Count();
                 if (req_met_count == switch_group.switch_list.Count()) { 
                     if (OnRequirementMet != null) { OnRequirementMet.Invoke(); }
-                    if (send_engine_event) { Engine.SetRequirement("Switch"); }
+                    if (send_engine_event) { Engine.SetRequirement("Switch"); } //Debug.Log(gameObject.name); }
                 }
             }
         } else {

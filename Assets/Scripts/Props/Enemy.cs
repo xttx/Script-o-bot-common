@@ -61,7 +61,7 @@ public class Enemy : MonoBehaviour, Engine.ISetable, Engine.IResetable
         initial_rotation = sub_obj.rotation;
 
         if (Enemy_Type == Enemy_Types.Bomb) {
-            mat_to_flash_on_hit.Add( sub_obj.GetComponent<MeshRenderer>().materials[1] );
+            mat_to_flash_on_hit.Add( sub_obj.GetComponent<MeshRenderer>().materials[0] );
         }
         foreach (var mat in mat_to_flash_on_hit)
             mat.EnableKeyword("_EMISSION");
@@ -188,12 +188,13 @@ public class Enemy : MonoBehaviour, Engine.ISetable, Engine.IResetable
         //Show Timer
         float e = explosion_delay;
         var tmp_tr = transform.GetChild(0).GetChild(3);
-        tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
+        //tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
+        tmp_tr.localPosition = new Vector3(0.1f, 0.6f, 0.1f);
         var tmp = tmp_tr.GetComponent<TMPro.TextMeshPro>();
         tmp.text = explosion_delay.ToString("N2"); 
         tmp_tr.gameObject.SetActive(true);
         DOTween.To(()=>e, x=>e = x, 0f, explosion_delay).OnUpdate(()=> tmp.text = e.ToString("N2"));
-        tmp_tr.DOLocalMoveZ(0.6f, explosion_delay);
+        tmp_tr.DOLocalMoveY(0.9f, explosion_delay);
 
         //Burn
         transform.GetChild(0).GetChild(0).gameObject.SetActive(true);
@@ -203,14 +204,16 @@ public class Enemy : MonoBehaviour, Engine.ISetable, Engine.IResetable
 
         //Explode
         tmp_tr.gameObject.SetActive(false);
-        tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
+        //tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
+        tmp_tr.localPosition = new Vector3(0.1f, 0.6f, 0.1f);
         transform.GetChild(0).GetChild(1).gameObject.SetActive(true);
 
         //Setup damage plane
-        float damage_plane_scale = ((damage_distance * 2f) + 1f) / 10 / transform.GetChild(0).localScale.y;
+        float damage_plane_scale = (((damage_distance * 2f) + 1f) / 10 / transform.GetChild(0).localScale.y) - 0.08f;
         Transform damage_plane = transform.GetChild(0).GetChild(2);
         damage_plane.DOLocalRotate( new Vector3 (0f, 360f, 0f), 0.4f, RotateMode.LocalAxisAdd).OnComplete(()=> {
-            damage_plane.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            //damage_plane.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            damage_plane.localRotation = Quaternion.Euler(0f, 0f, 0f);
         });
         damage_plane.DOScale(new Vector3(damage_plane_scale, damage_plane_scale, damage_plane_scale), 0.3f).OnComplete(()=>{
             damage_plane.DOScale(new Vector3(0f, 0f, 0f), 0.1f);
@@ -226,6 +229,7 @@ public class Enemy : MonoBehaviour, Engine.ISetable, Engine.IResetable
 
         //Turn off in the middle of exploding
         transform.GetChild(0).GetChild(0).gameObject.SetActive(false);
+        transform.GetChild(0).GetComponent<BoxCollider>().enabled = false;
         transform.GetChild(0).GetComponent<MeshRenderer>().enabled = false;
 
         suspend = false;
@@ -256,10 +260,11 @@ public class Enemy : MonoBehaviour, Engine.ISetable, Engine.IResetable
             transform.GetChild(0).GetChild(2).localScale = new Vector3(0f, 0f, 0f);     //Damage plane
             transform.GetChild(0).GetChild(0).gameObject.SetActive(false);              //Particles fitil
             transform.GetChild(0).GetChild(1).gameObject.SetActive(false);              //Particles explosion
+            transform.GetChild(0).GetComponent<BoxCollider>().enabled = true;
             transform.GetChild(0).GetComponent<MeshRenderer>().enabled = true;
 
             var tmp_tr = transform.GetChild(0).GetChild(3);
-            tmp_tr.gameObject.SetActive(false); tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
+            tmp_tr.gameObject.SetActive(false); tmp_tr.localPosition = new Vector3(0.1f, 0.6f, 0.1f); //tmp_tr.localPosition = new Vector3(0f, 0f, 0.37f);
         }
 
         if (hard_reset && deactivate_self_on_hard_reset) gameObject.SetActive(false);

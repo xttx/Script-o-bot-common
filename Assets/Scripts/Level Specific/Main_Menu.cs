@@ -61,15 +61,15 @@ public class Main_Menu : MonoBehaviour
 
     IEnumerator Animations() {
         main_canvas = GameObject.Find("Canvas").GetComponent<CanvasGroup>();
-        var img_back = GameObject.Find("Background_Image").GetComponent<Image>();
-        //var img_title = GameObject.Find("Image_Title").GetComponent<Image>();
+        //var img_back = GameObject.Find("Background_Image").GetComponent<Image>();
+        var img_back = GameObject.Find("Background_Image").GetComponent<CanvasGroup>();
         var img_title_sub = GameObject.Find("Image_Title_Sub").GetComponent<Image>();
-        //var rt_title = GameObject.Find("Image_Title").GetComponent<RectTransform>();
         GameObject.Find("Panel_Arc").transform.localScale = Vector3.zero;
         var rt_title_sub = GameObject.Find("Image_Title_Sub").GetComponent<RectTransform>();
         var panel_ui = GameObject.Find("Panel_UI").GetComponent<RectTransform>();
         panel_ui_cnv = panel_ui.GetComponent<CanvasGroup>();
-        img_back.color = new Color(1f, 1f, 1f, 0f);
+        //img_back.color = new Color(1f, 1f, 1f, 0f);
+        img_back.alpha = 0f;
         img_title_sub.color = new Color(1f, 1f, 1f, 0f);
         //rt_title.sizeDelta = new Vector2(rt_title.sizeDelta.x, 0f);
         panel_ui_cnv.alpha = 0f;

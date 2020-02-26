@@ -33,12 +33,14 @@ public class Control_UI : MonoBehaviour
         disable_canvas();
         inst.rt.DOKill();
         inst.rt.anchoredPosition = new Vector2(0f, 0f);
-        inst.rt.DOAnchorPosY(-110f, 0.5f).SetEase(Ease.InOutSine);
+        //inst.rt.DOAnchorPosY(-110f, 0.5f).SetEase(Ease.InOutSine);
+        inst.rt.DOAnchorPosY(-140f, 0.5f).SetEase(Ease.InOutSine);
     }
     public static void show(bool enable_canvas_after_show = true) {
         inst.rt.DOKill();
         inst.rt.anchoredPosition = new Vector2(0f, -110f);
-        inst.rt.DOAnchorPosY(0f, 0.5f).SetEase(Ease.InOutSine).OnComplete(()=>{
+        //inst.rt.DOAnchorPosY(0f, 0.5f).SetEase(Ease.InOutSine).OnComplete(()=>{
+        inst.rt.DOAnchorPosY(-5f, 0.5f).SetEase(Ease.InOutSine).OnComplete(()=>{
             if (enable_canvas_after_show) enable_canvas();
         });
     }

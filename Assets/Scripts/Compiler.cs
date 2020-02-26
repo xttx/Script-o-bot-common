@@ -980,7 +980,7 @@ public class BOT : MonoBehaviour
 		//Debug.Log("PutEnergy - async");
 		if (blocked.ToLower().Contains("putenergy()")) throw new Exception("I don't know about 'PutEnergy()' method yet.");
 		KeyValuePair<Loot.loot_type_enum, int> t;
-		t = new KeyValuePair<Loot.loot_type_enum, int>(Loot.loot_type_enum.QuantycEnergy, q);
+		t = new KeyValuePair<Loot.loot_type_enum, int>(Loot.loot_type_enum.QuanticEnergy, q);
 		act = () => bot_instance.StartCoroutine("PutCoroutine", t); Thread_Wait();
 	}
 	public static void Fight()
@@ -1310,6 +1310,13 @@ public class BOT : MonoBehaviour
 						Engine.Objects_To_Destroy.Remove(broken_toilet); Destroy(broken_toilet); loot.gameObject.SetActive(true);
 					} else {
 						//Petard
+						//Test blink while throwing petard
+						// BOT.bot_animator.SetTrigger("Blink");
+						// yield return new WaitForSeconds(0.2f);
+
+						BOT.bot_animator.Play("New State", 1); //Reset eyes before playing timeline
+						BOT.bot_animator.Play("New State", 2); //Reset tail before playing timeline
+						yield return new WaitForEndOfFrame();
 						var pd = bot_obj.GetComponent<UnityEngine.Playables.PlayableDirector>();
 						pd.SetGenericBinding(pd.playableAsset.outputs.ElementAt(1).sourceObject, loot.gameObject);
 						pd.Play();
@@ -1331,7 +1338,7 @@ public class BOT : MonoBehaviour
 				if (str == "") { //Only if pickup
 					if (loot.loot_type == Loot.loot_type_enum.HP)                 { HP += loot.quantity; }
 					else if (loot.loot_type == Loot.loot_type_enum.MP)            { MP += loot.quantity; }
-					else if (loot.loot_type == Loot.loot_type_enum.QuantycEnergy) { qEnergy += loot.quantity; }
+					else if (loot.loot_type == Loot.loot_type_enum.QuanticEnergy) { qEnergy += loot.quantity; }
 					Engine.Loot_list.Add(new KeyValuePair<Loot.loot_type_enum, int>(loot.loot_type, loot.quantity));
 					//Debug.Log("Loot list count: " + Engine.Loot_list.Count.ToString());
 				}
@@ -1382,8 +1389,9 @@ public class BOT : MonoBehaviour
 		Collector clctr = col.GetComponent<Collector>();
 		if (clctr) {
 			clctr.Put(s.Key, s.Value);
+			clctr.GetComponent<Animator>().SetTrigger("Open");
 
-			//TODO: Put Animation
+			//TODO: BOT Put Animation
 			yield return new WaitForSeconds_BOTPauseAware(1f);
 		} else {
 			last_error = "There is no collector in front of me.";

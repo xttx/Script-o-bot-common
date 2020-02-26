@@ -33,6 +33,7 @@ public class Hud : MonoBehaviour
     RectTransform gauge_HP_rt;
     RectTransform gauge_qe_rt;
     Image gauge_Action_rt;
+    RectTransform time_control_container;
     Text txt;
     Transform txt_container;
     Transform txt_container_scrollable;
@@ -49,6 +50,8 @@ public class Hud : MonoBehaviour
         gauge_HP_rt = transform.Find("Gauge_HP").GetComponent<RectTransform>();
         gauge_qe_rt = transform.Find("GaugeSup1").GetComponent<RectTransform>();
         gauge_Action_rt = transform.Find("Gauge_Speed").GetComponent<Image>();
+
+        time_control_container = GameObject.Find("Panel_Control_Time").GetComponent<RectTransform>();
 
         Transform panel_log = GameObject.Find("Panel_Hud_Log").transform;
         txt = panel_log.Find("Text").GetComponent<Text>();
@@ -71,13 +74,8 @@ public class Hud : MonoBehaviour
     {
         if (BOT.qEnergy != last_checked_qEnergy) {
             gauge_qe_rt.DOKill();
-            //if (txt.gameObject.activeSelf) txt.DOKill();
 
             int got = BOT.qEnergy - last_checked_qEnergy;
-            // if (got > 0) {txt.text = "Got " + got.ToString() + " quantic energy.";}
-            // else if (got < 0) {txt.text = "Lost " + got.ToString() + " quantic energy.";}
-            // txt.gameObject.SetActive(true); txt.color = Color.white;
-            // txt.DOFade(0f, 1f).SetDelay(3f).OnComplete(()=> {txt.gameObject.SetActive(false); });
             if (got > 0)      { Log_sub ("Got " + got.ToString() + " quantic energy."); }
             else if (got < 0) { Log_sub ("Lost " + got.ToString() + " quantic energy."); }
 
@@ -97,7 +95,8 @@ public class Hud : MonoBehaviour
 
             //Remap value;
             float n = Mathf.InverseLerp(0f, 100f, BOT.HP); //0 - 100 is a min/max HP range
-            float width = Mathf.Lerp(17f, 340f, n); //0 - 340 is a gauge recttransform width range
+            //float width = Mathf.Lerp(17f, 340f, n); //0 - 340 is a gauge recttransform width range
+            float width = Mathf.Lerp(17f, 407f, n); //0 - 407 is a gauge recttransform width range
             gauge_HP_rt.DOSizeDelta(new Vector2(width, gauge_HP_rt.sizeDelta.y), 1f);
 
             last_checked_HP = BOT.HP;
@@ -258,10 +257,15 @@ public class Hud : MonoBehaviour
     public void ShowHide_HudElements(bool hide = false) {
         var rt = GetComponent<RectTransform>();
         rt.DOKill();
+        time_control_container.DOKill();
         if(!hide) {
-            rt.DOAnchorPosX(-30f, 0.75f).SetUpdate(true); hud_is_hidden = false;
+            rt.DOAnchorPosX(0f, 0.75f).SetUpdate(true);
+            time_control_container.DOAnchorPosX(220f, 0.75f).SetUpdate(true);
+            hud_is_hidden = false;
         } else {
-            rt.DOAnchorPosX(-680f, 0.75f).SetUpdate(true); hud_is_hidden = true;
+            rt.DOAnchorPosX(-680f, 0.75f).SetUpdate(true);
+            time_control_container.DOAnchorPosX(30f, 0.75f).SetUpdate(true);
+            hud_is_hidden = true;
         }
     }
 }

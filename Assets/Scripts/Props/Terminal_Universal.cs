@@ -297,6 +297,11 @@ N   Answer   BOT
         for (int i = 0; i < potatoes.Length; i ++) {
             var correct = potatoes[i].potatoes;
 
+            if (r[i] == null) {
+                Hud.Log("Terminal: element " + i.ToString() + " of your array is null");
+                return false; 
+            }
+
             if (r[i].Length != correct.GetLength(0)) {
                 Hud.Log("Terminal: element " + i.ToString() + " of your array has incorrect length of " + r[i].Length.ToString() + ", expected length " + correct.GetLength(0).ToString());
                 return false; 
