@@ -261,9 +261,10 @@ Quaternion qqq = new Quaternion();
     Regex paranthesis = new Regex(@"\(.*?\)", RegexOptions.Compiled);
     Regex brackets = new Regex(@"\[.*?\]", RegexOptions.Compiled);
     Regex brackets_content = new Regex(@"\[.+?\]", RegexOptions.Compiled);
-    //Regex var_var = new Regex(@"var\s+(\w+)\s*=(\s*new)?\s*(([\w\.](\s*<.*>)?(\s*\(.*?\))?(\[\d*(,\d)*\]({.*})?)?)+)\s*;", RegexOptions.Compiled);
-    Regex var_var = new Regex(@"var\s+(\w+)\s*=(\s*new)?\s*(([\w\.""](\s*<.*>)?(\s*\(.*?\))?((\[[\d|,]*\])*({.*})?)?)+)\s*;", RegexOptions.Compiled);
-    Regex var_common = new Regex(@"\s*(public[\s]*)?(static[\s]*)?([\w\.]+(\s*<.+>)?(\s*\[,*\])*\s+[\w]+)\s*(=.+)?;", RegexOptions.Compiled);
+    Regex var_var = new Regex(@"var\s+(\w+)\s*=(\s*new)?\s*(([\w\.""](\s*<.*>)?(\s*\(.*?\))?((\[[\w|,]*\])*({.*})?)?)+)\s*;", RegexOptions.Compiled);
+    Regex var_common = new Regex(@"\s*(public[\s]*)?(static[\s]*)?([\w\.]+(\s*<.+>)?(\s*\[,*\])*\s+[\w]+)\s*(=?.*?);", RegexOptions.Compiled);
+    Regex var_inline = new Regex(@"(foreach|catch|using)\((.+)\)", RegexOptions.Compiled);
+    Regex method_declaration = new Regex(@"\s*(public[\s]*)?(static[\s]*)?([\w]+)(\s*<.+>)?(\s*\[,*\])*\s+([\w]+)\s*(\(.*\))", RegexOptions.Compiled);
     Regex using_regex = new Regex("using\\s+([\\w\\.]+);", RegexOptions.Compiled);
     BackgroundWorker check_var_thread = new BackgroundWorker();
     ConcurrentQueue<changed_rows_info> changed_rows = new ConcurrentQueue<changed_rows_info>();
@@ -511,7 +512,7 @@ Quaternion qqq = new Quaternion();
         if (Intellisense_Settings.method_signature_text != null) Intellisense_Settings.method_signature_text.enabled = false;
         Intellisense_AddUsing("FromSettings");
         builtin_types.Add("bool", "System.Boolean"); builtin_types.Add("byte", "System.Byte"); builtin_types.Add("sbyte", "System.SByte");
-        builtin_types.Add("char", "System.SByte");  builtin_types.Add("decimal", "System.Decimal"); builtin_types.Add("double ", "System.Double");
+        builtin_types.Add("char", "System.Char");  builtin_types.Add("decimal", "System.Decimal"); builtin_types.Add("double ", "System.Double");
         builtin_types.Add("float", "System.Single"); builtin_types.Add("int", "System.Int32"); builtin_types.Add("uint", "System.UInt32");
         builtin_types.Add("long", "System.Int64"); builtin_types.Add("ulong", "System.UInt64"); builtin_types.Add("object", "System.Object");
         builtin_types.Add("short", "System.Int16"); builtin_types.Add("ushort", "System.UInt16"); builtin_types.Add("string", "System.String");
@@ -553,8 +554,12 @@ Quaternion qqq = new Quaternion();
     // Update is called once per frame
     void Update()
     {
+        //TEST
+        //if(Input.GetKeyDown(KeyCode.Z)) { Scroll_To_Line(50); return; }
+
         UnityEvent ue;
         while (Event_Queue.TryDequeue(out ue)) {
+            //Intellisense_begin_init and Intellisense_end_init events, queued from background thread
             if (ue != null) ue.Invoke();
         }
 
@@ -618,6 +623,7 @@ Quaternion qqq = new Quaternion();
         //DONE: Triple click to select full row
 
         Cursor_Blink();
+        bool read_only = Control_UI.isInPauseState() || Control_UI.isPlaying();
 
         //Activation / Deactivation
         #region "Activation / Deactivation OnMouseClick"
@@ -655,7 +661,7 @@ Quaternion qqq = new Quaternion();
         #region "Intellisense navigation"
         if (Intellisense_Settings.suggestion_rt != null && Intellisense_Settings.suggestion_rt.gameObject.activeSelf) {
             if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0) suggestion_mouse_enabled = true;
-            if (Engine.check_key(Engine.Key.Intellisense_Submit)) { Intellisense_Navigation(nav_enum.Submit); return; }
+            if (Engine.check_key(Engine.Key.Intellisense_Submit) && !read_only) { Intellisense_Navigation(nav_enum.Submit); return; }
             if (repeat == (KeyCode)10001 || Engine.check_key(Engine.Key.Intellisense_Up))   { Intellisense_Navigation(nav_enum.Up); suggestion_mouse_enabled = false; }
             if (repeat == (KeyCode)10002 || Engine.check_key(Engine.Key.Intellisense_Down)) { Intellisense_Navigation(nav_enum.Down); suggestion_mouse_enabled = false; }
         }
@@ -714,9 +720,10 @@ Quaternion qqq = new Quaternion();
             GUIUtility.systemCopyBuffer = Selection_Get_Text();
         }
         if (Input.GetKeyDown(KeyCode.X) && ctrl_Pressed) {
-            GUIUtility.systemCopyBuffer = Selection_Get_Text(true);
+            if (read_only) { Selection_Get_Text(); Hud.ShowImportantMessage("Can't edit while script is running."); }
+            else { GUIUtility.systemCopyBuffer = Selection_Get_Text(true); }
         }
-        if (Input.GetKeyDown(KeyCode.V) && ctrl_Pressed) {
+        if (Input.GetKeyDown(KeyCode.V) && ctrl_Pressed && !read_only) {
             type = GUIUtility.systemCopyBuffer.Replace("\r\n", "\n");
         }
         #endregion
@@ -724,10 +731,11 @@ Quaternion qqq = new Quaternion();
         //Enter
         #region "Enter"
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || repeat == KeyCode.Return || repeat == KeyCode.KeypadEnter) {
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             if (!alt_Pressed) {
-                //If enter is pressed in the middle of the row - split row and move right part to the next row
                 string sel = Selection_Get_Text(true);
                 if (current_chr < text_rows[current_row].text.Length) {
+                    //If enter is pressed in the middle of the row - split row and move right part to the next row
                     Row_Split(current_row, current_chr);
                     Syntax_Highlight ( current_row );
                     Syntax_Highlight ( current_row + 1 );
@@ -754,6 +762,7 @@ Quaternion qqq = new Quaternion();
         //Backspace
         #region "Backspace"
         if (Input.GetKeyDown(KeyCode.Backspace) || repeat == KeyCode.Backspace) {
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             if (Selection_Get_Text(true).Length == 0) {
                 if (current_chr > 0) {
                     Undo_Add( undo_op.modify, current_row );
@@ -764,6 +773,7 @@ Quaternion qqq = new Quaternion();
                     float w = text_char_w[current_row][current_chr];
                     text_char_w[current_row].RemoveAt(current_chr);
                     text_rows_w[current_row] -= w;
+                    CheckBreakpoint(current_row, undo_op.modify);
                 } else if (current_row > 0) {
                     current_row--;
                     Undo_Add( undo_op.modify, current_row );
@@ -789,22 +799,33 @@ Quaternion qqq = new Quaternion();
         //Delete
         #region "Delete"
         if (Input.GetKeyDown(KeyCode.Delete) || repeat == KeyCode.Delete) {
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             if (Selection_Get_Text(true).Length == 0) {
                 if (current_chr < text_char_w[current_row].Count()) {
+                    //Deleting a character
                     Undo_Add( undo_op.modify, current_row );
                     text_rows[current_row].text = text_rows[current_row].text.Remove(current_chr, 1);
 
                     float w = text_char_w[current_row][current_chr];
                     text_char_w[current_row].RemoveAt(current_chr);
                     text_rows_w[current_row] -= w;
+                    CheckBreakpoint(current_row, undo_op.modify);
                 } else if (current_row < text_rows_w.Count()-1) {
+                    //This is a last character - Deleting a row
                     Undo_Add( undo_op.modify, current_row );
                     Undo_Add( undo_op.modify, current_row + 1 );
-                    text_rows[current_row].text += text_rows[current_row+1].text;
 
+                    text_rows[current_row].text += text_rows[current_row+1].text;
                     text_char_w[current_row].AddRange(text_char_w[current_row+1]);
                     text_rows_w[current_row] += text_rows_w[current_row+1];
 
+                    //We are deleting the next row, with transfering its text to the current row
+                    //  so, if we had a breakpoint at that row - move it one row up
+                    if (text_rows[current_row].text.Trim() != "") {
+                        if (breakpoints.ContainsKey(text_rows[current_row+1]) && !breakpoints.ContainsKey(text_rows[current_row])) { 
+                            SetBreakpoint();
+                        }
+                    }
                     Row_Erase(current_row + 1);
                 }
                 Syntax_Highlight ( current_row );
@@ -819,7 +840,8 @@ Quaternion qqq = new Quaternion();
 
         //Undo
         #region "Undo"
-        if (Input.GetKeyDown(KeyCode.Z) && ctrl_Pressed) {
+        if ((Input.GetKeyDown(KeyCode.Z) && ctrl_Pressed)) {
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             Undo_Restore();
             Cursor_Update_Position(); Selection_Clear(); Cursor_Blink(true); Update_Scroll_V_Size(); Update_Scroll_H_Size();
             Close_Intellisense();
@@ -932,6 +954,7 @@ Quaternion qqq = new Quaternion();
 
         //Tab with multiline selection or shift+tab
         if (Input.GetKeyDown(KeyCode.Tab) && (selection_start[0] != selection_end[0] || shift_pressed)) {
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             int tab_length = 3;
             var cur_position = new int[]{current_row, current_chr};
             int[] s = selection_start; int[] e = selection_end;
@@ -979,6 +1002,7 @@ Quaternion qqq = new Quaternion();
             Cursor_Update_Position(); Update_Scroll_V_Size(); Update_Scroll_H_Size();
         }
         else if (type != "") { 
+            if (read_only) { Hud.ShowImportantMessage("Can't edit while script is running."); return; }
             type_text(type);
             if (pair_autoclosed) { current_chr--; Cursor_Update_Position(); }
         }
@@ -1370,16 +1394,18 @@ Quaternion qqq = new Quaternion();
 
         text_rows_w[row+1] = text_char_w[row+1].Sum();
         text_rows_w[row] = text_char_w[row].Sum();
+
+        if (chr == 0 && breakpoints.ContainsKey(text_rows[row])) {
+            Destroy(breakpoints[text_rows[row]]);
+            breakpoints.Remove(text_rows[row]);
+            SetBreakpoint(row+1);
+        }
     }
 
     void Row_Erase(int row)
     {
         Undo_Add(undo_op.remove, row);
-
-        if (breakpoints.ContainsKey(text_rows[row])) {
-            Destroy(breakpoints[text_rows[row]]);
-            breakpoints.Remove(text_rows[row]);
-        }
+        CheckBreakpoint(row, undo_op.remove);
 
         for (int i = row + 1; i < text_rows.Count(); i++) {
             text_rows[i].GetComponent<RectTransform>().anchoredPosition += new Vector2(0f, lineHeight);
@@ -1506,6 +1532,7 @@ Quaternion qqq = new Quaternion();
                         text_rows[line].text = text_rows[line].text.Remove(char_from, count);
                         text_rows_w[line] -= text_char_w[line].Skip(char_from).Take(count).Sum();
                         text_char_w[line].RemoveRange(char_from, count);
+                        CheckBreakpoint(line, undo_op.modify);
                     }
                 }
             }
@@ -1812,7 +1839,7 @@ Quaternion qqq = new Quaternion();
         string timelog_txt_file = "D:\\Unity 2018.1.0f2\\Projects\\Script-o-bot\\assemblies timelog.txt";
 
         //string [] exclude_assemblies_arr = new string[]{"UNITYEDITOR", "MCS", "UNITYENGINE.UI", "UNITYENGINE.COREMODULE", "NUNIT", "ASSEMBLY-CSHARP-", "UNITY.TEXTMESHPRO", "UNITY.CECIL", "UNITY.LEGACY"};
-        string [] exclude_assemblies_arr = new string[]{"SYSTEM, ", "UNITYEDITOR", "MCS", "UNITYENGINE.UI", "NUNIT", "ASSEMBLY-CSHARP-", "UNITY.TEXTMESHPRO", "UNITY.CECIL", "UNITY.LEGACY"};
+        string [] exclude_assemblies_arr = new string[]{"SYSTEM, ", "UNITYEDITOR", "MCS", "UNITYENGINE.UI", "NUNIT", "ASSEMBLY-CSHARP-", "UNITY.TEXTMESHPRO", "UNITY.CECIL", "UNITY.LEGACY", "MICROSOFT.CODEANALYSIS"};
         //exclude_assemblies_arr = new string[]{};
         string[] exclude_namespaces_arr = exclude_namespaces.Split(new char[]{'\n'}, StringSplitOptions.RemoveEmptyEntries);
         exclude_namespaces_arr = exclude_namespaces_arr.Select((s)=>s.ToUpper()).ToArray();
@@ -1947,7 +1974,7 @@ Quaternion qqq = new Quaternion();
                                 sw.WriteLine("Method: " + mi.Name + " (params: " + string.Join(", ", mi.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name + " " + p.ParameterType.IsGenericType)) + ") (ret: " + mi.ReturnType.Name + " (" + mi.ReturnType.FullName + "))" + is_extension_str ); // + " Attributes: " + mi.Attributes.ToString() );
                             } 
 
-                            if (!current_level_dict.dict.ContainsKey(mi.Name)) { //This prefvent overloaded methods
+                            if (!current_level_dict.dict.ContainsKey(mi.Name)) { //This prevent overloaded methods
                                 var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.M_Method;
                                 ncd.is_static = mi.IsStatic;
                                 ncd.return_type = mi.ReturnType.Name; ncd.return_type_full = mi.ReturnType.FullName;
@@ -2176,286 +2203,6 @@ Quaternion qqq = new Quaternion();
             Intellisense_Init_Derived_Recour(kv.Value);
         }
     }
-    void Intellisense_Init_Old() {
-        if (Intellisense_Settings.suggestion_item == null) return; //If there is no suggestion_item to show it's pretty much useless
-
-        //Disable intellisense suggestion while loading class dictionary
-        var sg_tmp = Intellisense_Settings.suggestion_item;
-        Intellisense_Settings.suggestion_item = null;
-        
-        Event_Queue.Enqueue(On_Intellisense_BeginInit);
-        bool READ_ASSEMBLIES_LIST_FROM_REFLECTION = Intellisense_Settings.get_assemblies_from_reflection;
-		bool READ_ASSEMBLIES_LIST_FROM_FILE = Intellisense_Settings.get_assemblies_from_file;
-        bool WRITE_ASSEMBLIES_LIST_TO_FILE = Intellisense_Settings.write_assemblies_to_file;
-        bool WRITE_NAMESPACES_LIST_TO_FILE = Intellisense_Settings.write_namespaces_to_file;
-		string assemblies_txt_file = "D:\\Unity 2018.1.0f2\\Projects\\Script-o-bot\\assemblies list.txt";
-        string namespaces_txt_file = "D:\\Unity 2018.1.0f2\\Projects\\Script-o-bot\\assemblies namespaces.txt";
-
-        string [] exclude_assemblies_arr = new string[]{"UNITYEDITOR"};
-        string[] exclude_namespaces_arr = exclude_namespaces.Split(new char[]{'\n'}, StringSplitOptions.RemoveEmptyEntries);
-        exclude_namespaces_arr = exclude_namespaces_arr.Select((s)=>s.ToUpper()).ToArray();
-
-        DateTime start_time = DateTime.Now;
-
-		//test get all classes
-        DateTime current_time = DateTime.Now;
-		if (!READ_ASSEMBLIES_LIST_FROM_FILE && READ_ASSEMBLIES_LIST_FROM_REFLECTION) {
-			//Get classes from reflection
-			System.IO.StreamWriter sw = null;
-            System.IO.StreamWriter sw_N = null;
-			if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw = System.IO.File.CreateText(assemblies_txt_file);
-            if (WRITE_NAMESPACES_LIST_TO_FILE) sw_N = System.IO.File.CreateText(namespaces_txt_file);
-
-            List<string> namespaces = new List<string>();
-
-			foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
-			{
-				//Debug.Log(asm.FullName);
-				if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Assembly full name: " + asm.FullName);
-				if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("----------------------------------------------------------------------------------");
-
-				string t = asm.FullName.ToUpper();
-				if (true || t.Contains("CSHARP") || t.Contains("MSCORLIB") || t.Contains("SYSTEM") || t.Contains("UNITYENGINE"))
-				{
-                    if (WRITE_NAMESPACES_LIST_TO_FILE) {
-                        //TEST
-                        DateTime test_time = DateTime.Now;
-                        var namespaces_test = asm.GetTypes().Select(x => x.Namespace).Distinct();
-                        sw_N.WriteLine("Got all namespaces of " + asm.FullName + " in " + (DateTime.Now - test_time).TotalSeconds + "sec");
-                        
-                        int t_count = 0;
-                        test_time = DateTime.Now;
-                        foreach (var nmsp in namespaces_test) {
-                            //Debug.Log(nmsp);
-                            if (!string.IsNullOrEmpty(nmsp)) {
-                                var found = exclude_namespaces_arr.Where((s)=> nmsp.ToUpper().StartsWith(s) );
-                                if (found.Count() > 0) continue;
-                            }
-
-                            //sw_N.WriteLine(nmsp);
-                            var types = asm.GetTypes().Where(x => x.IsClass && x.Namespace == nmsp);
-                            t_count += types.Count();
-                        }
-                        sw_N.WriteLine("Got all types of those namespaces in " + (DateTime.Now - test_time).TotalSeconds + "sec. Types count: " + t_count);
-                    }
-
-					foreach (Type type in asm.GetTypes())
-					{
-                        if (!string.IsNullOrEmpty(type.Namespace)) {
-                            //if (exclude_namespaces_arr.Contains(type.Namespace.ToUpper())) continue;
-                            var found = exclude_namespaces_arr.Where((s)=> type.Namespace.ToUpper().StartsWith(s) );
-                            if (found.Count() > 0) continue;
-                        } 
-
-                        if (!namespaces.Contains(type.Namespace)) {
-                            namespaces.Add(type.Namespace);
-                            if (WRITE_NAMESPACES_LIST_TO_FILE) {
-                                var time_offset = (DateTime.Now - current_time).TotalSeconds;
-                                sw_N.WriteLine("+" + time_offset + "sec - " + type.Namespace);
-                                current_time = DateTime.Now;
-                            }
-                        }
-
-						//Debug.Log(type.FullName);
-						//if (type.FullName.ToUpper().Contains("BOT")) Debug.Log(asm.FullName + " " + type.FullName);
-
-						string t_name = type.FullName;
-						t_name = t_name.Replace("+", ".").Replace(">", "").Replace("<", "");
-						if (t_name.Contains("`")) t_name = t_name.Substring(0, t_name.IndexOf("`"));
-						if (t_name.Contains("c__")) t_name = t_name.Substring(0, t_name.IndexOf("c__"));
-
-						classes_dict current_level_dict = classes_dictionary;
-						foreach (string n in t_name.Split(new char[]{'.'}, StringSplitOptions.RemoveEmptyEntries))
-						{
-							if (!current_level_dict.dict.ContainsKey(n)) { current_level_dict.dict.Add(n, new classes_dict()); }
-							current_level_dict = current_level_dict.dict[n];
-						}
-
-						string ttt = "NotSet";
-                        if (type.IsClass) { ttt = "Class"; current_level_dict.type = classes_dict.Type_Enum.T_class; }
-                        if (type.IsEnum)  { ttt = "Enum"; current_level_dict.type = classes_dict.Type_Enum.T_enum; }
-                        if (type.IsValueType && !type.IsEnum)  { ttt = "Struct"; current_level_dict.type = classes_dict.Type_Enum.T_struct; }
-                        if (type.BaseType == typeof(MulticastDelegate)) { ttt = "Delegate"; current_level_dict.type = classes_dict.Type_Enum.T_Delegate; }
-						if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Type: " + type.FullName + " (" + ttt + ")");
-
-                        if (type.IsClass) {
-                            Type[] arguments = type.GetGenericArguments();
-                            if (arguments.Length > 0) {
-                                if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine ( "Generic arguments: " + string.Join(", ", arguments.Select(x => x.Name)) );
-                            }
-                        }
-
-						if (type.IsEnum) {
-							foreach (string s in type.GetEnumNames()) {
-								if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Enum name: " + s);
-                                if (!current_level_dict.dict.ContainsKey(s)) {
-                                    var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.Enum_Value;
-                                    current_level_dict.dict.Add(s, ncd);
-                                }
-							}
-						}
-
-                        ConstructorInfo[] methodInfos_constructor = type.GetConstructors();
-                        foreach (var ci in methodInfos_constructor) {
-                            if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Constructor: " + ci.Name + " (param: " + string.Join(", ", ci.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ")");
-                        }
-
-						MethodInfo[] methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-						foreach (var mi in methodInfos) {
-                            //if (mi.Name.ToLower() == "getcomponent") Debug.Log("Method: " + mi.Name + " (ret: " + mi.ReturnType.Name + ") (param: " + string.Join(", ", mi.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ") GenericMethod: " + mi.IsGenericMethod + " GenericDefinition: " + mi.IsGenericMethodDefinition);
-                            // Get generic arguments: GetComponent<T>();
-                            // Type[] arguments = mi.GetGenericArguments();
-                            // if (arguments.Length > 0 && (t_name.ToLower().EndsWith("list") || t_name.ToLower().EndsWith("dictionary"))) {
-                            //     Debug.Log("Method: " + mi.Name + " (ret: " + mi.ReturnType.Name + ") (param: " + string.Join(", ", mi.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ") GenericParams: " + string.Join(", ", arguments.Select(x => x.Name)));
-                            // }
-							//if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Method: " + mi.Name + " (ret: " + mi.ReturnType.Name + ") (param: " + string.Join(", ", mi.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ")");
-							if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Method: " + mi.Name + " (ret: " + mi.ReturnType.Name + ")");
-							if (!current_level_dict.dict.ContainsKey(mi.Name)) {
-                                var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.M_Method;
-                                ncd.is_static = mi.IsStatic;
-                                ncd.return_type = mi.ReturnType.Name; ncd.return_type_full = mi.ReturnType.FullName;
-                                
-                                var param = mi.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name);
-                                ncd.method_signature = mi.ReturnType.Name + " " + mi.Name + " ( " + string.Join(", ", param) + " )";
-
-                                current_level_dict.dict.Add(mi.Name, ncd);
-                            }
-						}
-
-                        PropertyInfo[] propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-                        foreach (var pi in propertyInfos) {
-                            if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Property: " + pi.Name + " (ret: " + pi.PropertyType.Name + ")");
-                            if (!current_level_dict.dict.ContainsKey(pi.Name)) {
-                                var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.P_Property;
-                                ncd.is_static = pi.CanRead ? pi.GetGetMethod(true).IsStatic : false;
-                                ncd.return_type = pi.PropertyType.Name; ncd.return_type_full = pi.PropertyType.FullName;
-                                ncd.method_signature = pi.PropertyType.Name + " " + pi.Name;
-                                current_level_dict.dict.Add(pi.Name, ncd);
-                            }
-                        }
-
-                        FieldInfo[] fieldInfos = type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-                        foreach (var fi in fieldInfos) {
-                            ttt = "NotSet";
-                            var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.F_Field;
-                            // IsLiteral determines if its value is written at compile time and not changeable
-                            // IsInitOnly determines if the field can be set in the body of the constructor
-                            // for C# a field which is readonly keyword would have both true but a const field would have only IsLiteral equal to true
-                            if (fi.IsInitOnly) { ttt = "ReadOnly"; ncd.type = classes_dict.Type_Enum.F_READONLY; }
-                            if (fi.IsLiteral && !fi.IsInitOnly) { ttt = "Const"; ncd.type = classes_dict.Type_Enum.F_CONST; }
-                            if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Field: " + fi.Name + " (" + ttt + ") (ret: " + fi.FieldType.Name + ")");
-                            if (!current_level_dict.dict.ContainsKey(fi.Name)) { 
-                                ncd.is_static = fi.IsStatic;
-                                ncd.return_type = fi.FieldType.Name;
-                                ncd.return_type_full = fi.FieldType.FullName;
-                                ncd.method_signature = fi.FieldType.Name + " " + fi.Name;
-                                current_level_dict.dict.Add(fi.Name, ncd);
-                            }
-                        }
-                        EventInfo[] eventInfos = type.GetEvents(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-                        foreach (var ei in eventInfos) {
-							if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Event: " + ei.Name);
-							if (!current_level_dict.dict.ContainsKey(ei.Name)) {
-                                var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.E_Event;
-                                ncd.is_static = ei.GetAddMethod().IsStatic;
-                                current_level_dict.dict.Add(ei.Name, ncd);
-                            }
-						}
-					}
-				}
-				if (WRITE_ASSEMBLIES_LIST_TO_FILE) { sw.WriteLine(""); sw.WriteLine(""); sw.WriteLine(""); }
-			}
-
-            //Namespaces
-            namespaces.RemoveAt(0); //Remove empty namespace
-            if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("----------------------------------------------------------------------------------");
-            foreach (string n in namespaces) {
-                //Debug.Log("'" + n + "'");
-                classes_dict current_level_dict = classes_dictionary;
-                if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.WriteLine("Namespace: " + n);
-                foreach (string w in n.Split(new char[]{'.'})) {
-                    if (current_level_dict.dict.ContainsKey(w)) {
-                        current_level_dict.dict[w].type = classes_dict.Type_Enum.N_Namespace;
-                        current_level_dict = current_level_dict.dict[w];
-                    } else {
-                        break;
-                    }
-                }
-            }
-            if (WRITE_ASSEMBLIES_LIST_TO_FILE) sw.Close();
-            if (WRITE_NAMESPACES_LIST_TO_FILE) sw_N.Close();
-            Debug.Log ("Reflection init from reflection in " + (DateTime.Now - start_time).TotalSeconds + " seconds.");
-
-		} else if (READ_ASSEMBLIES_LIST_FROM_FILE) {
-			//Get classes from file
-			var sr = System.IO.File.OpenText(assemblies_txt_file);
-			classes_dict current_level_dict = classes_dictionary;
-
-			while (!sr.EndOfStream) {
-				string l = sr.ReadLine().Trim();
-
-				if (l == "") continue;
-				if (l.ToUpper().StartsWith("-")) continue;
-				
-				if (l.ToUpper().StartsWith("TYPE:")) {
-					current_level_dict = classes_dictionary;
-
-					string t_name = l.Substring(5).Trim();
-					t_name = t_name.Replace("+", ".").Replace(">", "").Replace("<", "");
-					if (t_name.Contains("`")) t_name = t_name.Substring(0, t_name.IndexOf("`"));
-					if (t_name.Contains("c__")) t_name = t_name.Substring(0, t_name.IndexOf("c__"));
-
-					foreach (string n in t_name.Split(new char[]{'.'}, StringSplitOptions.RemoveEmptyEntries))
-					{
-						if (!current_level_dict.dict.ContainsKey(n)) current_level_dict.dict.Add(n, new classes_dict());
-						current_level_dict = current_level_dict.dict[n];
-					}
-				}
-
-				if (l.ToUpper().StartsWith("METHOD:")) {
-					string m_name = l.Substring(7).Trim();
-					if (!current_level_dict.dict.ContainsKey(m_name)) current_level_dict.dict.Add(m_name, new classes_dict());
-				}
-			}
-            Debug.Log ("Reflection init from file in " + (DateTime.Now - start_time).TotalSeconds + " seconds.");
-		} else {
-            // for (int i = 0; i < 850000; i++) {
-            //     var t = new classes_dict();
-            //     t.method_signature = "asdfasdfad";
-            //     t.return_type = "asdfasdfasdf";
-            //     t.type = classes_dict.Type_Enum.F_READONLY;
-            //     classes_dictionary.dict.Add(i.ToString(), t);
-            // }
-
-            // var x = new System.Xml.XmlDocument();
-            // node_test = x.CreateElement("aaa");
-            // for (int i = 0; i < 850000; i++) {
-            //     var n = x.CreateElement("xxx");
-            //     n.AppendChild( x.CreateElement("asdfasdfad") );
-            //     n.AppendChild( x.CreateElement("es_dictionary.d") );
-            //     n.AppendChild( x.CreateElement("t.type_classes_dict.Type_Enum.F_READONLY") );
-            //     node_test.AppendChild(n);
-            // }
-
-            Debug.Log ("Reflection init from DUMMY in " + (DateTime.Now - start_time).TotalSeconds + " seconds.");
-            //Debug.Log ("Reflection init from DUMMY in " + (DateTime.Now - start_time).TotalSeconds + " seconds. node_test.count " + node_test.ChildNodes.Count);
-        }
-
-        //Add built-in types
-        if (classes_dictionary.dict.ContainsKey("System")) {
-            var system = classes_dictionary.dict["System"];
-            foreach (var kv in builtin_types) {
-                string t = kv.Value.Substring(kv.Value.IndexOf(".") + 1);
-                if (system.dict.ContainsKey(t)) classes_dictionary.dict.Add(kv.Key, system.dict[t]);
-            }
-        }
-
-        Event_Queue.Enqueue(On_Intellisense_EndInit);
-        Intellisense_Settings.suggestion_item = sg_tmp;
-		// Type thisType = this.GetType();
-		// MethodInfo theMethod = thisType.GetMethod("gameObject.transform.position.x");
-		// theMethod.Invoke(this, null);
-	}
     void Intellisense_Init_Vars() {
         changed_rows = new ConcurrentQueue<changed_rows_info>();
         intellisense_vars = new classes_dict();
@@ -2602,10 +2349,12 @@ Quaternion qqq = new Quaternion();
         classes_dict.Type_Enum[] check_for_static = new classes_dict.Type_Enum[]{ classes_dict.Type_Enum.M_Method, classes_dict.Type_Enum.P_Property, classes_dict.Type_Enum.F_Field, classes_dict.Type_Enum.F_CONST, classes_dict.Type_Enum.E_Event };
 
         int c = 0;
+        lock (search_list) {
         foreach (classes_dict search_dict in search_list) {
             //Debug.Log("Search dict count: " + search_dict.dict.Count + ", Last word = '"  + last_word + "'");
             bool is_variable = (c == index_of_var_list); c++;
 
+            lock (search_dict.dict) {
             foreach (var kv in search_dict.dict) {
                 if (last_word == "" || kv.Key.StartsWith(last_word, StringComparison.OrdinalIgnoreCase)) {
                     //Debug.Log("Found: " + kv.Key + ", sig = " + kv.Value.method_signature + ", type = " + kv.Value.type.ToString() + ", static = " + kv.Value.is_static);
@@ -2615,14 +2364,17 @@ Quaternion qqq = new Quaternion();
 
                     //Check if the variable is available in the current context
                     if (is_variable && vars_rows_assoc.ContainsKey(kv.Key)) {
+                        var tmp = vars_rows_assoc[kv.Key][0];
+                        //Debug.Log("Variable context: {" + tmp.context[0] + ":" + tmp.context[1] + "},{" + tmp.context[2] + ":" + tmp.context[3] + "}. Current row: " + current_row + ", current chr: " + current_chr);
                         var q = vars_rows_assoc[kv.Key].Where( (vi)=> 
                             (vi.context[0] < current_row && vi.context[2] > current_row) ||
-                            (vi.context[0] == current_row && vi.context[1] < current_chr) ||
-                            (vi.context[2] == current_row && vi.context[3] > current_chr - 2)
+                            (vi.context[0] == current_row && vi.context[2] > current_row && vi.context[1] < current_chr) ||
+                            (vi.context[2] == current_row && vi.context[0] < current_row && vi.context[3] > current_chr - 2 ||
+                            (vi.context[0] == current_row && vi.context[2] == current_row && vi.context[1] < current_chr && vi.context[3] > current_chr - 2))
                         ).Count();
                         if (q == 0) continue;
+                        //else Debug.Log("check context - pass");
                     }
-                    //Debug.Log("check context - pass");
 
                     found_entries++;
 
@@ -2652,7 +2404,9 @@ Quaternion qqq = new Quaternion();
                     if (found_entries >= Intellisense_Settings.max_suggestion_count) break;
                 }
             }
+            } //Lock
         }
+        } //Lock
 
         //Debug.Log("Found suggestion entries: " + found_entries + ", last_word_begin = " + last_word_begin + ", last_word_sym_count = " + last_word_sym_count);
         if (found_entries > 0) {
@@ -2707,6 +2461,7 @@ Quaternion qqq = new Quaternion();
 
                     var var_arr = match_var_cmn.Groups[3].Value.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
                     string chain = string.Join(" ", var_arr.Take(var_arr.Length - 1)); //Last word should be the variable name
+                    if (chain == "var") continue;
                     //if (match_var_cmn.Groups[4].Success) var_arr[0] = var_arr[0].Replace(match_var_cmn.Groups[4].Value, ""); //Content in <>
                     //if (match_var_cmn.Groups[5].Success) chain = chain.Replace(match_var_cmn.Groups[5].Value, "") + "[]"; //Content in []
                     //Replace [] with content by just [] i.e. -> [,] by []
@@ -2719,7 +2474,7 @@ Quaternion qqq = new Quaternion();
                     //Debug.Log("Chain found " + string.Join(".", words_arr) + " = " + (current_level_dict != null) );
                     if (current_level_dict == null) continue;
                     //if (current_level_dict.T != null) Debug.Log("Declared array - OK");
-                    //Debug.Log("Chain type " + current_level_dict.type );
+                    //Debug.Log("Update variable declaration (typed): " + var_arr.Last() + " = " + chain + " (" + current_level_dict.type.ToString()+").");
 
                     bool valid_variable_type = false;
                     valid_variable_type = valid_variable_type || current_level_dict.type == classes_dict.Type_Enum.T_class;
@@ -2729,6 +2484,7 @@ Quaternion qqq = new Quaternion();
                     if (!valid_variable_type) continue;
 
                     int[] context = new int[]{0, match_var_cmn.Index + match_var_cmn.Length, 0, 0};
+                    //Debug.Log("Update variable declaration (typed): Context set to position {" + text_rows.IndexOf(rows_Info.associated_row) + ":" + (match_var_cmn.Index + match_var_cmn.Length) + "}. Regex pattern ind: " + match_var_cmn.Index + ", Regex pattern length: " + match_var_cmn.Length );
                     //detect inline variables in paranthesis in for(), while(), using()...
                     bool is_inline = rows_Info.text.Substring(0, match_var_cmn.Index).TrimEnd().EndsWith("(");
                     Intellisense_VariableAddOrUpdate(current_level_dict, var_arr.Last(), rows_Info.associated_row, context, is_inline);
@@ -2738,28 +2494,102 @@ Quaternion qqq = new Quaternion();
                 //TODO: in "var t = BOT;" must not search for 'var'
                 matches = var_var.Matches(rows_Info.text);
                 foreach (Match match_var_var in matches) {
-                    //Debug.Log("Update variable declaration groups VAR MODE 1: " + match_var_cmn.Groups[1].Value + ", 2: " + match_var_cmn.Groups[2].Value + ", 3: " + match_var_cmn.Groups[3].Value + ", 4: " + match_var_cmn.Groups[4].Value + ", 5: " + match_var_cmn.Groups[5].Value + ", 6: " + match_var_cmn.Groups[6].Value + ", 7: " + match_var_cmn.Groups[7].Value + ", 8: " + match_var_cmn.Groups[8].Value);
+                    //Debug.Log("Update variable declaration groups VAR MODE 1: " + match_var_var.Groups[1].Value + ", 2: " + match_var_var.Groups[2].Value + ", 3: " + match_var_var.Groups[3].Value + ", 4: " + match_var_var.Groups[4].Value + ", 5: " + match_var_var.Groups[5].Value + ", 6: " + match_var_var.Groups[6].Value + ", 7: " + match_var_var.Groups[7].Value + ", 8: " + match_var_var.Groups[8].Value);
                     string var_name = match_var_var.Groups[1].Value.Trim();
                     string var_chain = match_var_var.Groups[3].Value.Trim();
                     if (var_chain.Replace("(", "").Length != var_chain.Replace(")", "").Length) continue; //If open/close paranthesis does not match
                     //if (match_var_cmn.Groups[7].Success) var_chain = var_chain.Replace(match_var_cmn.Groups[7].Value, "").Trim() + "[]"; //Content in []
+                    
                     //Replace [] with content by just [] i.e. -> [,] by []
-                    foreach (Match m in brackets.Matches(var_chain)) { var_chain = var_chain.Replace(m.Value, "[]"); }
+                    //If we found a NEW keyword, we assume that the array is created - "var x = new string[y];"
+                    //Otherwise, we assume that array element is accessed - "var y = GetFiles()[0];"
+                    if (match_var_var.Groups[2].Value.Trim().ToUpper() == "NEW") {
+                        foreach (Match m in brackets.Matches(var_chain)) { var_chain = var_chain.Replace(m.Value, "[]"); }
+                    } else {
+                        foreach (Match m in brackets.Matches(var_chain)) { var_chain = var_chain.Replace(m.Value, "@"); }
+                    }
                     if (var_chain.Contains("{")) var_chain = var_chain.Substring(0, var_chain.IndexOf("{"));
 
                     foreach (Match m in paranthesis.Matches(var_chain)) var_chain = var_chain.Replace(m.Value, "");
+                    //Debug.Log("Update variable declaration. Chain to search: " + var_chain);
                     string[] words_arr = var_chain.Split(new char[]{'.'}, StringSplitOptions.RemoveEmptyEntries);
 
                     string tmp_chain; bool tmp_chain_is_static;
                     classes_dict current_level_dict = Intellisense_SearchChain(words_arr, out tmp_chain, out tmp_chain_is_static, true);
 
                     if (current_level_dict == null) continue;
-                    //Debug.Log("Update variable declaration: " + var_name + " = " + tmp_chain + " (" + current_level_dict.type.ToString()+")");
+                    //Debug.Log("Update variable declaration (var): " + var_name + " = " + tmp_chain + " (" + current_level_dict.type.ToString()+")");
 
                     int[] context = new int[]{0, match_var_var.Index + match_var_var.Length, 0, 0};
                     //detect inline variables in paranthesis in for(), while(), using()...
                     bool is_inline = rows_Info.text.Substring(0, match_var_var.Index).TrimEnd().EndsWith("(");
                     Intellisense_VariableAddOrUpdate(current_level_dict, var_name, rows_Info.associated_row, context, is_inline);
+                }
+
+                //Search for inline variables in foreach(), catch(), using() statements. The 'for' statement is detected normally by var_common and var_var regexes
+                matches = var_inline.Matches(rows_Info.text);
+                foreach (Match match_var_inline in matches) {
+                    var declaration = match_var_inline.Groups[2];
+
+                }
+
+                //Search for method declarations
+                //TODO: Intellisense is not enabled at start, but is enabled later, from GlobalOptions script.
+                //      And we have to skip this loop when intellisense is not yet initialized, or we'll have a silent error.
+                //      But when init is done, the already present methods ( like 'Start()', which is generated at startup ) will be lost forever and not suggested.
+                //TODO: The context for method arguments variable is not calculated
+                matches = method_declaration.Matches(rows_Info.text);
+                foreach (Match match_method in matches) {
+                    if (classes_dictionary.dict.Count == 0) break; //If intellisense is not yet initialized - skip
+
+                    string method_name = match_method.Groups[6].Value;
+                    string method_return = match_method.Groups[3].Value;
+                    string method_args = match_method.Groups[7].Value;
+                    if (method_name == null || method_return == null || method_args == null) continue;
+                    if (method_return == "new") continue; //variable initialization, not a method declaration
+                    //Debug.Log("Found method declaration: " + method_return + " " + method_name + method_args);
+
+                    var ncd = new classes_dict(); ncd.type = classes_dict.Type_Enum.M_Method;
+                    ncd.is_static = true; //Ugly hack - Mark method as static, to show it without calling from a variable
+                    ncd.return_type = method_return; ncd.return_type_full = method_return;
+                    ncd.method_signature = method_args;
+                    if (classes_dictionary.dict.ContainsKey(method_name))
+                        classes_dictionary.dict[method_name] = ncd;
+                    else
+                        classes_dictionary.dict.Add(method_name, ncd);
+
+                    //Detecting arguments as variables
+                    if (method_args.Length <= 2) continue;
+                    method_args = method_args.Substring(1, method_args.Length - 2);
+                    //Debug.Log("args: " + method_args); //args: string s, string e
+                    foreach (string arg in method_args.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries)) {
+                        var matches2 = var_common.Matches(arg.Trim() + ";");
+                        //Debug.Log("parsing arg: '" + arg + "', matches count: " + matches2.Count);
+                        if (matches2.Count != 1) continue;
+
+                        //Using the same routine as for typed variables declaration
+                        var var_arr = matches2[0].Groups[3].Value.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                        string chain = string.Join(" ", var_arr.Take(var_arr.Length - 1)); //Last word should be the variable name
+                        foreach (Match m in brackets.Matches(chain)) { chain = chain.Replace(m.Value, "[]"); }
+
+                        string chain_out; bool tmp_chain_is_static;
+                        string[] words_arr = chain.Trim().Split(new char[]{'.'}, StringSplitOptions.RemoveEmptyEntries);
+                        //Debug.Log("Method declaration variables: search chain: " + chain);
+                        classes_dict current_level_dict = Intellisense_SearchChain(words_arr, out chain_out, out tmp_chain_is_static, false);
+                        if (current_level_dict == null) continue;
+
+                        bool valid_variable_type = false;
+                        valid_variable_type = valid_variable_type || current_level_dict.type == classes_dict.Type_Enum.T_class;
+                        valid_variable_type = valid_variable_type || current_level_dict.type == classes_dict.Type_Enum.T_enum;
+                        valid_variable_type = valid_variable_type || current_level_dict.type == classes_dict.Type_Enum.T_struct;
+                        valid_variable_type = valid_variable_type || current_level_dict.type == classes_dict.Type_Enum.T_Delegate;
+                        //Debug.Log("Method declaration variables: " + var_arr.Last() + " detected. IsValid: " + valid_variable_type);
+                        if (!valid_variable_type) continue;
+
+                        int[] context = new int[]{0, match_method.Index + match_method.Length, 0, 0};
+                        Intellisense_VariableAddOrUpdate(current_level_dict, var_arr.Last(), rows_Info.associated_row, context, true);
+                        //Debug.Log("Method declaration variables: added '" + var_arr.Last() + "' as " + chain);
+                    }
                 }
 
                 //Check using;
@@ -2769,29 +2599,48 @@ Quaternion qqq = new Quaternion();
                 }
 
                 //Check context
-                //int cur_row = text_rows.IndexOf(rows_Info.associated_row);
                 foreach (var kv in vars_rows_assoc) {
                     foreach (var vi in kv.Value) {
                         if (vi.context == null) continue;
+                        //Debug.Log("variable context before: " + kv.Key + ": {" + vi.context[0] + ":" + vi.context[1] +"} {" + vi.context[2] +":" + vi.context[3] + "}");
                         int var_row = text_rows.IndexOf(vi.row);
                         if (var_row < 0) continue; //We are in background thread, and this row can be already deleted
                         int level = 0;
+                        bool block_found = false;
                         int[] end = new int[]{int.MaxValue, int.MaxValue};
                         for ( int r = var_row; r < text_rows.Count(); r++ ) {
                             var txt = text_rows[r].text;
-                            for (int c = (r==var_row)?vi.context[1]:0 ; c < txt.Length; c++) {
-                                if (txt[c] == '{') level++;
+                            
+                            int chr_from = 0;
+                            if (r == var_row) {
+                                if (!vi.is_inline) {
+                                    chr_from = vi.context[1]; 
+                                } else {
+                                    //Debug.Log("TXT: \"" + txt + "\". Context[1]: " + vi.context[1]);
+                                    if (vi.context[1] >= txt.Length) { end = new int[]{0,0}; goto exit_loop_label; }
+                                    //Debug.Log("LastIndex of '(' of Context[1]: " + txt.LastIndexOf('(', vi.context[1]));
+                                    //Debug.Log("End of of '()' of Context[1]: " + txt.IndexOfBalancedEnd('(', ')', txt.LastIndexOf('(', vi.context[1])));
+                                    int start_p = txt.LastIndexOf('(', vi.context[1]);
+                                    if (start_p < 0) { end = new int[]{0,0}; goto exit_loop_label; }
+                                    chr_from = txt.IndexOfBalancedEnd('(', ')', start_p);
+                                }
+                            }
+                            for (int c = chr_from; c < txt.Length; c++) {
+                                if (txt[c] == '{') { level++; block_found = true; }
                                 if (txt[c] == '}') { 
                                     level--;
                                     //if (vi.is_inline) Debug.Log(kv.Key + " is inline var. } @ " + r + ":" + c + ", level " + level );
                                     if (vi.is_inline && level < 1) { end = new int[]{r, c}; goto exit_loop_label; }
                                 }
                                 if (level < 0) { end = new int[]{r, c}; goto exit_loop_label; }
+
+                                //For inline variables (in for/using staatements or method declaration) - we want to limit context to first ';' if there is no block
+                                if (txt[c] == ';' && !block_found && vi.is_inline) { end = new int[]{r, c}; goto exit_loop_label; }
                             }
                         }
                         exit_loop_label:
                         vi.context = new int[]{ var_row, vi.context[1], end[0], end[1] };
-                        //Debug.Log("variable context: " + kv.Key + ": {" + var_row + ":" + vi.context[1] +"} {" + end[0] +":" + end[1] + "}");
+                        //Debug.Log("variable context after: " + kv.Key + ": {" + vi.context[0] + ":" + vi.context[1] +"} {" + vi.context[2] +":" + vi.context[3] + "}");
                     }
                 }
             }
@@ -3216,6 +3065,15 @@ Quaternion qqq = new Quaternion();
             } else if (search_in_vars && i == 0 && intellisense_vars.dict.ContainsKey(words_arr[i])) {
                 //Search in vars (first word only)
                 //Debug.Log("Found in vars");
+                var var_context = vars_rows_assoc[words_arr[i]][0].context;
+                bool context_pass = (current_row > var_context[0]) && (current_row < var_context[2]);
+                if (var_context[0] == current_row && var_context[2] == current_row) { context_pass = (current_chr > var_context[1] && current_chr-2 < var_context[3]); }
+                else if (var_context[0] == current_row) { context_pass = (current_chr > var_context[1]); }
+                else if (var_context[2] == current_row) { context_pass = (current_chr-2 < var_context[3]); }
+
+                //Debug.Log("Var " + words_arr[i] + " context: {" + var_context[0] + ":" + var_context[1] + "}{" + var_context[2] + ":" + var_context[3] + "} context pass: " + context_pass);
+                if (!context_pass) return null;
+
                 chain_is_static = false;
                 current_level_dict = intellisense_vars.dict[words_arr[i]];
                 chain += words_arr[i] + ".";
@@ -3489,6 +3347,11 @@ Quaternion qqq = new Quaternion();
         get { return lineHeight; }
     }
 
+    public int current_line {
+        get { return current_row; }
+        set { current_row = value; Cursor_Update_Position(true); }
+    }
+
     public float line_offset (float n) {
         Vector2 offset = new Vector2(0f, (n * lineHeight) + (lineHeight * 0.5f) );
         Rect screenR = txt_cnt_rt.ScreenSpaceBounds(offset);
@@ -3503,6 +3366,23 @@ Quaternion qqq = new Quaternion();
         //return new Vector2(pos_3d.x, pos_3d.y );
         Rect b = text_rows[n].GetComponent<RectTransform>().ScreenSpaceBounds();
         return new Vector2( b.xMin, b.yMax );
+    }
+
+    public void Scroll_To_Line(int line, int additional_offset = 0) {
+        float additional_offset_px = additional_offset * lineHeight;
+        float row_offset_px = line * lineHeight;
+
+        float needed_y = float.MinValue;
+        if (row_offset_px + lineHeight + 5 > txt_cnt_rt.rect.height + txt_cnt_rt.anchoredPosition.y) needed_y = row_offset_px + lineHeight + 5 + additional_offset_px - txt_cnt_rt.rect.height;
+        if (row_offset_px < txt_cnt_rt.anchoredPosition.y) needed_y = row_offset_px - additional_offset_px;
+        if (needed_y > float.MinValue) {
+            float scroll_value = (text_rows_w.Count * lineHeight) - txt_cnt_rt.rect.height;
+            float v = needed_y / scroll_value;
+            //Debug.Log("Needed y: " + needed_y + ", Scroll value: " + scroll_value + ", v: " + v);
+            if (v > 1f) v = 1f; if (v < 0f) v = 0f;
+            if (ScrollV != null) ScrollV.value = v;
+            On_Scroll_V(v);
+        }
     }
 
     public void Activate() {
@@ -3690,6 +3570,21 @@ Quaternion qqq = new Quaternion();
         Cursor_Update_Position();
     }
 
+    public List<string> Get_Variables(int line = -1, int chr = -1) {
+        List<string> vars = new List<string>();
+        foreach (var kv in intellisense_vars.dict) {
+            var tmp = vars_rows_assoc[kv.Key][0];
+            var q = vars_rows_assoc[kv.Key].Where( (vi)=> 
+                (vi.context[0] < line && vi.context[2] > line) ||
+                (vi.context[0] == line && vi.context[2] > line && vi.context[1] < chr) ||
+                (vi.context[2] == line && vi.context[0] < line && vi.context[3] > chr - 2 ||
+                (vi.context[0] == line && vi.context[2] == line && vi.context[1] < chr && vi.context[3] > chr - 2))
+            ).Count();
+            if (q > 0) vars.Add(kv.Key);
+        }
+        return vars;
+    }
+
     public void HighlightText(int start_char, int end_char, Color? color = null){
         //Debug.Log("Highlight start: " + start_char + " end: " + end_char);
         if (start_char < 0) {
@@ -3760,16 +3655,21 @@ Quaternion qqq = new Quaternion();
         }
         selector_per_row.Clear();
     }
-    public void SetBreakpoint() {
-        if (breakpoints.ContainsKey(text_rows[current_row])) {
-            Destroy(breakpoints[text_rows[current_row]]);
-            breakpoints.Remove(text_rows[current_row]);
+    public void SetBreakpoint(int row = -1) {
+        if (row < 0) row = current_row;
+        if (breakpoints.ContainsKey(text_rows[row])) {
+            Destroy(breakpoints[text_rows[row]]);
+            breakpoints.Remove(text_rows[row]);
         } else {
-            int length = text_rows[current_row].text.Length;
+            int length = text_rows[row].text.Length;
             if (length > 0) {
-                HighlightText(new int[]{current_row, 0}, new int[]{current_row, length}, Color_Scheme.highlight_breakpoint_color);
+                //var old_selection = new int[][]{selection_start, selection_end};
+                HighlightText(new int[]{row, 0}, new int[]{row, length}, Color_Scheme.highlight_breakpoint_color);
+                //selection_start = old_selection[0]; selection_end = old_selection[1];
+                Selection_Clear();
+
                 GameObject breakpoint_obj = selector_highlighters[selector_highlighters.Count-1];
-                breakpoints.Add(text_rows[current_row], breakpoint_obj);
+                breakpoints.Add(text_rows[row], breakpoint_obj);
                 selector_highlighters.RemoveAt(selector_highlighters.Count-1);
 
                 breakpoint_obj.transform.SetParent(transform, true);
@@ -3777,16 +3677,33 @@ Quaternion qqq = new Quaternion();
                 var breakpoint_obj_rt = breakpoint_obj.GetComponent<RectTransform>();
                 breakpoint_obj_rt.sizeDelta = new Vector2(txt_cnt_rt.rect.width, breakpoint_obj_rt.sizeDelta.y);
 
-                float offset_Y = breakpoint_obj.transform.position.y - text_rows[current_row].transform.position.y;
+                float offset_Y = breakpoint_obj.transform.position.y - text_rows[row].transform.position.y;
                 var pc = breakpoint_obj.AddComponent<UnityEngine.Animations.ParentConstraint>();
                 pc.rotationAxis = UnityEngine.Animations.Axis.None; pc.translationAxis = UnityEngine.Animations.Axis.Y;
                 pc.translationOffsets = new Vector3[]{ new Vector3(0f, offset_Y, 0f) };
 
                 var src = new UnityEngine.Animations.ConstraintSource();
-                src.sourceTransform = text_rows[current_row].transform; src.weight = 1f;
+                src.sourceTransform = text_rows[row].transform; src.weight = 1f;
                 pc.AddSource(src); pc.constraintActive = true;
             }
         }
+    }
+    private bool CheckBreakpoint(int row, undo_op op) {
+        switch (op) {
+            case undo_op.modify :
+                if (breakpoints.ContainsKey(text_rows[row]) && text_rows[row].text.Trim() == "") {
+                    Destroy(breakpoints[text_rows[row]]); breakpoints.Remove(text_rows[row]);
+                    return true;
+                }
+                break;
+            case undo_op.remove :
+                if (breakpoints.ContainsKey(text_rows[row])) {
+                    Destroy(breakpoints[text_rows[row]]); breakpoints.Remove(text_rows[row]);
+                    return true;
+                }
+                break;
+        }
+        return false;
     }
 
     public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData) {
